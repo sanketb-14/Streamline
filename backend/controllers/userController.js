@@ -1,18 +1,18 @@
 import User from "../models/User.js";
+import Channel from "../models/Channel.js";
 import { AppError } from "../utils/appError.js";
 import { catchAsync } from "../utils/catchAsync.js";
 import multer from "multer";
 import sharp from "sharp";
-
+import Video from "../models/Video.js";
 
 function filterObj(obj, ...allowFields) {
-    const newObj = {}
-    Object.keys(obj).forEach(el => {
-        if (allowFields.includes(el)) newObj[el] = obj[el]
-    })
-    return newObj
+  const newObj = {};
+  Object.keys(obj).forEach((el) => {
+    if (allowFields.includes(el)) newObj[el] = obj[el];
+  });
+  return newObj;
 }
-
 
 // const multerStorage = multer.diskStorage({
 //     destination:(req , file , cb) => {
@@ -24,85 +24,123 @@ function filterObj(obj, ...allowFields) {
 //     }
 // })
 
-const multerStorage = multer.memoryStorage()
+const multerStorage = multer.memoryStorage();
 
-const multerFilter =(req,file ,cb) => {
-    if(file.mimetype.startsWith('image')){
-        cb(null , true)
-    }
-    else{
-        cb(new AppError("Please upload only images" , 400) , false)
-    }
-}
+const multerFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith("image")) {
+    cb(null, true);
+  } else {
+    cb(new AppError("Please upload only images", 400), false);
+  }
+};
 
-const upload  = multer({
-    storage:multerStorage ,
-    fileFilter:multerFilter
-})
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter,
+});
 
-export const uploadUserPhot = upload.single('photo')
+export const uploadUserPhoto = upload.single("photo");
 
-export const resizeUserPhot = (req,res,next) => {
-    if(!req.file) return next()
+export const resizeUserPhot = (req, res, next) => {
+  if (!req.file) return next();
 
-        req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`
+  req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
 
-        sharp(req.file.buffer).resize(250,250).toFormat('jpeg').jpeg({
-            quality:90
-        }).toFile(`public/img/users/${req.file.filename}`)
-
-        next()
-}
-
-
-export const getMe = catchAsync(async(req,res,next) => {
-    const user = await User.findById(req.params.id)
-    if(!user){
-        return next(new AppError("User not found" , 404))
-    }
-    res.status(200).json({
-        status: "success",
-        data: {
-            user
-        }
-
+  sharp(req.file.buffer)
+    .resize(250, 250)
+    .toFormat("jpeg")
+    .jpeg({
+      quality: 90,
     })
-})
+    .toFile(`public/img/users/${req.file.filename}`);
 
-export const updateMe = catchAsync(async(req,res,next) => {
+  next();
+};
 
-    // only fullName,email and photo user can update
-    const filter =  filterObj(req.body , 'fullName' , 'email')
-    if(req.file) filter.photo = req.file.filename
-    
-    
-    
-    const user = await User.findByIdAndUpdate(req.user.id , filter , {new:true , runValidators: true})
+export const getMe = catchAsync(async (req, res, next) => {
+  // 1. Get user data (assuming req.user.id exists from auth middleware)
 
-    if(!user){
-        return next(new AppError("User not found" , 404))
-    }
 
-    res.status(200).json({
-        status: "success",
-        data: {
-            user
-        }
+
+  const user = await User.findById(req.user.id)
+    .select("fullName email photo provider")
+
+    .lean();
+
+  if (!user) {
+    return next(new AppError("No user found with that ID", 404));
+  }
+  // 2. Get channel data for the user
+  const channel = await Channel.findOne({ owner: user._id })
+    .populate("subscribers", "fullName photo") // Only get necessary subscriber fields
+    .populate({
+      path: "videos",
+      select: "title description views createdAt", // Select relevant video fields
+      options: { sort: { createdAt: -1 } }, // Sort videos by newest first
     })
-})
+    .lean();
+  // Add debug logs
+  // console.log('Channel before populate:', channel?._id);
+  // console.log('Video IDs in channel:', channel?.videos);
+
+  // Verify videos exist
+  if (channel?.videos?.length > 0) {
+    const videoCheck = await Video.find({
+      _id: { $in: channel.videos },
+    }).lean();
+  }
+  // 4. Send response
+  // 3. Combine user and channel data
+  const userData = {
+    ...user,
+    channel: channel || null, // Include channel data if it exists, null if not
+  };
+
+  // Check if the videos exist
+
+  // 4. Send response
+  res.status(200).json({
+    status: "success",
+    data: {
+      user: userData,
+    },
+  });
+});
+
+export const updateMe = catchAsync(async (req, res, next) => {
+  // only fullName,email and photo user can update
+  const filter = filterObj(req.body, "fullName", "email");
+  if (req.file) filter.photo = req.file.filename;
+
+  const user = await User.findByIdAndUpdate(req.user.id, filter, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!user) {
+    return next(new AppError("User not found", 404));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user,
+    },
+  });
+});
 
 export const deleteMe = catchAsync(async (req, res, next) => {
-    await User.findByIdAndUpdate(req.user.id, { active: false })
-    res.status(204).json({ status: "success", data: null })
-})
+  await User.findByIdAndUpdate(req.user.id, { active: false });
+  res.status(204).json({ status: "success", data: null });
+});
 
 export const getAllUser = catchAsync(async (req, res, next) => {
-    const users = await User.find()
-    res.status(200).json({
-        status: "success",
-        results: users.length,
-        data: {
-            users
-        }
-    })
-})
+  const users = await User.find();
+  res.status(200).json({
+    status: "success",
+    results: users.length,
+    data: {
+      users,
+    },
+  });
+});

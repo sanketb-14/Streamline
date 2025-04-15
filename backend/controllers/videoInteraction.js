@@ -6,7 +6,7 @@ import Channel from '../models/Channel.js';
 
 // Like/Dislike Video Functions
 export const likeVideo = catchAsync(async (req, res, next) => {
-    const video = await Video.findById(req.params.id);
+    const video = await Video.findById(req.params.videoId);
     if (!video) {
         return next(new AppError('Video not found', 404));
     }
@@ -43,7 +43,7 @@ export const likeVideo = catchAsync(async (req, res, next) => {
 });
 
 export const dislikeVideo = catchAsync(async (req, res, next) => {
-    const video = await Video.findById(req.params.id);
+    const video = await Video.findById(req.params.videoId);
     if (!video) {
         return next(new AppError('Video not found', 404));
     }

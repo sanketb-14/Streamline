@@ -11,11 +11,18 @@ const VideoSchema = new mongoose.Schema({
   description: {
     type: String,
     trim: true,
-    maxLength: [100, "Description must be at 100 characters"],
+    maxLength: [500, "Description must be at 100 characters"],
   },
   fileUrl: { type: String, required: true },
   thumbnail: String,
-  views: { type: Number, default: 0 },
+  views: {
+    type: Number,
+    default: 0,
+    validate: {
+      validator: Number.isInteger,
+      message: "Views must be an integer",
+    },
+  },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   dislikes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   channel: {
@@ -38,7 +45,7 @@ const VideoSchema = new mongoose.Schema({
           "Comedy",
           "Film",
           "Science",
-        ], // Popular tags
+        ],
       },
     ],
     validate: [arrayLimit, "A video can have up to 5 tags"],
@@ -47,9 +54,8 @@ const VideoSchema = new mongoose.Schema({
 });
 
 function arrayLimit(val) {
-    return val.length <= 5;
-  }
-  
+  return val.length <= 5;
+}
 
 const Video = mongoose.model("Video", VideoSchema);
 

@@ -159,28 +159,33 @@ const upload = multer({
   
   // Create video entry in database
   export const createVideo = catchAsync(async (req, res, next) => {
+    // 1. Validate request
     if (!req.file) {
       return next(new AppError('No video file uploaded', 400));
     }
-
-   
+  
+    if (!req.channel) {
+      return next(new AppError('No channel found for this user', 404));
+    }
+  
+    // 2. Create video
     const video = await Video.create({
       title: req.body.title,
       description: req.body.description,
       fileUrl: `/videos/uploads/${req.file.filename}`,
       thumbnail: `/videos/thumbnails/${req.file.thumbnailName}`,
-      channel: req.user.channel, 
-      tags:req.body.tags || []
+      channel: req.channel._id,
+      tags: req.body.tags || []
     });
-
-     // Add video to channel's videos array
-
+  
+    // 3. Add video to channel's videos array
     await Channel.findByIdAndUpdate(
-        req.user.channel,
-        { $push: { videos: video._id } },
-        { new: true }
+      req.channel._id,
+      { $push: { videos: video._id } },
+      { new: true }
     );
   
+    // 4. Return response
     res.status(201).json({
       status: 'success',
       data: {
@@ -188,13 +193,44 @@ const upload = multer({
       },
     });
   });
+
+  export const syncChannelVideos = catchAsync(async (req, res, next) => {
+    // 1. Get all videos
+    const videos = await Video.find({});
+    const updates = [];
   
+    // 2. For each video, update its channel's videos array
+    for (const video of videos) {
+      updates.push(
+        Channel.findByIdAndUpdate(
+          video.channel,
+          { $addToSet: { videos: video._id } },
+          { new: true }
+        )
+      );
+    }
+  
+    // 3. Execute all updates
+    await Promise.all(updates);
+  
+    // 4. Verify the sync
+    const channels = await Channel.find({})
+      .populate('videos', 'title description views createdAt');
+  
+    res.status(200).json({
+      status: 'success',
+      message: 'All channels synchronized with their videos',
+      data: {
+        channels
+      }
+    });
+  });
   // Get video with processed URL
   export const getVideo = catchAsync(async (req, res, next) => {
-    const video = await Video.findById(req.params.id)
+    const video = await Video.findById(req.params.videoId)
         .populate({
             path: 'channel',
-            select: 'name owner',
+            select: 'name owner subscribers',
             populate: {
                 path: 'owner',
                 select: 'photo fullName'
@@ -225,6 +261,7 @@ const upload = multer({
         channel: {
             id: video.channel._id,
             name: video.channel.name,
+            subscribers:video.channel.subscribers,
             owner: {
                 id: video.channel.owner._id,
                 name: video.channel.owner.fullName,
@@ -241,53 +278,47 @@ const upload = multer({
 });
   // Update video details
   export const updateVideo = catchAsync(async (req, res, next) => {
-
     const video = await Video.findById(req.params.id);
     
     if (!video) {
-        return next(new AppError('Video not found', 404));
-    } 
-
-    const channel = await Channel.findById(video.channel);
-    
-    if (!channel) {
-        return next(new AppError('Associated channel not found', 404));
+      return next(new AppError('Video not found', 404));
     }
-
-      // Check if the user owns the channel
-      if (channel.owner.toString() !== req.user._id.toString()) {
-        return next(new AppError('You are not authorized to delete this video', 403));
-    }
-
-    // Remove video reference from channel
-    await Channel.findByIdAndUpdate(
-        video.channel,
-        { $pull: { videos: video._id } }
-    );
-
-    const allowedFields = ['title', 'description','tags'];
-    const filteredBody = Object.keys(req.body)
-      .filter(key => allowedFields.includes(key))
-      .reduce((obj, key) => {
-        obj[key] = req.body[key];
-        return obj;
-      }, {});
   
-    const newVideo = await Video.findOneAndUpdate(
-      { _id: req.params.id },
+    // Ensure tags is always an array
+    const allowedFields = ['title', 'description', 'tags'];
+    console.log(req.body);
+    
+
+    const filteredBody = {};
+    
+    allowedFields.forEach(field => {
+      if (field in req.body) {
+        if (field === 'tags') {
+          // Handle tags specifically - ensure it's always an array
+          filteredBody[field] = Array.isArray(req.body[field]) ? req.body[field] : [];
+        } else {
+          // For other fields, just copy them as is
+          filteredBody[field] = req.body[field];
+        }
+      }
+    });
+      
+  
+    const updatedVideo = await Video.findByIdAndUpdate(
+      req.params.id,
       filteredBody,
       { new: true, runValidators: true }
     );
   
-    if (!newVideo) {
-      return next(new AppError('Video not found or you are not authorized', 404));
+    if (!updatedVideo) {
+      return next(new AppError('Failed to update video', 500));
     }
   
     res.status(200).json({
       status: 'success',
       data: {
-        newVideo,
-      },
+        video: updatedVideo
+      }
     });
   });
   
@@ -416,6 +447,71 @@ const upload = multer({
   });
 });
 
+export const videoSuggestions = catchAsync(async (req, res, next) => {
+  const { search, limit = 5 } = req.query;
+  
+  if (!search) {
+    return res.status(400).json({ 
+      message: 'Search query is required' 
+    });
+  }
+  
+  // Escape any special regex characters in the search term
+  const escapedSearch = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  
+  // Log the search term for debugging
+  console.log('Search term:', search);
+  
+  const videos = await Video.aggregate([
+    { 
+      $match: { 
+        // Use a simple contains match
+        title: { $regex: escapedSearch, $options: 'i' }
+      } 
+    },
+    {
+      // Log matching titles for debugging
+      $project: {
+        _id: 1,
+        title: 1,
+        channel: 1,
+        debug_title: { $toLower: "$title" }
+      }
+    },
+    { 
+      $lookup: { 
+        from: 'channels', 
+        localField: 'channel', 
+        foreignField: '_id', 
+        as: 'channel' 
+      } 
+    },
+    { 
+      $unwind: '$channel' 
+    },
+    { 
+      $project: { 
+        _id: 1, 
+        title: 1, 
+        thumbnail: 1,
+        'channel.name': 1 
+      } 
+    },
+    { 
+      $limit: parseInt(limit) 
+    }
+  ]);
+  
+  // Log the result count
+  console.log('Found videos:', videos.length);
+  
+  res.status(200).json({
+    status: 'success',
+    data: { videos }
+  });
+});
+
+
 export const getVideosByTag = catchAsync(async (req, res, next) => {
     const { tag } = req.params;
     const page = parseInt(req.query.page) || 1;
@@ -444,59 +540,67 @@ export const getVideosByTag = catchAsync(async (req, res, next) => {
         data: { videos }
     });
 });
-
 export const getVideoStats = catchAsync(async (req, res, next) => {
-    const stats = await Video.aggregate([
-      {
-        $match: req.query.channelId ? 
-          { channel: req.query.channelId } : {}
-      },
-      {
-        $group: {
-          _id: null,
-          totalVideos: { $sum: 1 },
-          totalViews: { $sum: '$views' },
-          totalLikes: { $sum: { $size: '$likes' } },
-          totalDislikes: { $sum: { $size: '$dislikes' } },
-          avgViews: { $avg: '$views' },
-          avgLikes: { $avg: { $size: '$likes' } },
-          avgDuration: { $avg: '$duration' }
-        }
-      }
-    ]);
+  const { channelId } = req.query;
   
-    // Get trending tags
-    const trendingTags = await Video.aggregate([
+  // Convert channelId to ObjectId if provided
+  const matchStage = channelId ? 
+      { channel: new mongoose.Types.ObjectId(channelId) } : {};
+
+  const stats = await Video.aggregate([
       {
-        $unwind: '$tags'
+          $match: matchStage
       },
       {
-        $group: {
+          $group: {
+              _id: null,
+              totalVideos: { $sum: 1 },
+              totalViews: { $sum: '$views' },
+              totalLikes: { $sum: { $size: '$likes' } },
+              totalDislikes: { $sum: { $size: '$dislikes' } },
+              avgViews: { $avg: '$views' },
+              avgLikes: { $avg: { $size: '$likes' } },
+              avgDuration: { $avg: '$duration' }
+          }
+      }
+  ]);
+
+  const trendingTags = await Video.aggregate([
+      {
+          $match: matchStage  // Apply same channel filter to tags if needed
+      },
+      {
+          $unwind: '$tags'
+      },
+      {
+          $group: {
           _id: '$tags',
           count: { $sum: 1 },
           totalViews: { $sum: '$views' }
-        }
+          }
       },
       {
-        $sort: { totalViews: -1 }
+          $sort: { totalViews: -1 }
       },
       {
-        $limit: 10
+          $limit: 10
       }
-    ]);
-  
-    res.status(200).json({
+  ]);
+
+  res.status(200).json({
       status: 'success',
       data: {
-        stats: stats[0],
-        trendingTags
+          stats: stats[0],
+          trendingTags
       }
-    });
   });
+});
   
   // Get channel videos summary
   export const getChannelVideoStats = catchAsync(async (req, res, next) => {
     const channelId = req.params.channelId;
+    console.log(channelId);
+    
   
     const stats = await Video.aggregate([
       {

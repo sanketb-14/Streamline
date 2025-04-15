@@ -1,9 +1,4 @@
 import express from "express";
-
-import bcrypt from "bcryptjs";
-import User from "../models/User.js";
-
-
 const router = express.Router();
 
 import {
@@ -12,47 +7,32 @@ import {
   protect,
   restrict,
   logout,
+  googleSignIn,
 } from "../controllers/authController.js";
-import { getMe, updateMe, deleteMe,getAllUser, uploadUserPhot, resizeUserPhot } from "../controllers/userController.js";
+import {
+  getMe,
+  updateMe,
+  deleteMe,
+  getAllUser,
+  uploadUserPhoto,
+  resizeUserPhot,
+} from "../controllers/userController.js";
 
-router.post('/test-password', async (req, res) => {
-  const { email, password } = req.body;
-  
-  const user = await User.findOne({ email }).select('+password');
-  if (!user) {
-      return res.status(404).json({ status: 'fail', message: 'User not found' });
-  }
-  
-  const isMatch = await bcrypt.compare(password, user.password);
-  
-  res.json({
-      status: 'success',
-      data: {
-          passwordMatches: isMatch,
-          providedPassword: password,
-          hashedPassword: user.password
-      }
-  });
-});
-
+// Authentication Routes
 router.post("/register", register);
-
 router.post("/login", login);
+router.post('/google', googleSignIn)
 
 
 
-router.use(protect)
-router.get("/", restrict("admin") ,getAllUser)
-router.get("/logout",  logout);
-
-router.get("/", getMe);
-
-router.patch("/updateMe",uploadUserPhot, resizeUserPhot, updateMe);
+// Protected Routes
+router.use(protect);
+router.get("/logout", logout);
+router.get("/me", getMe);
+router.patch("/updateMe", uploadUserPhoto, resizeUserPhot, updateMe);
 router.delete("/deleteMe", deleteMe);
 
-
-// Add this temporary test route to your auth routes
-
-
+// Admin Routes
+router.get("/", restrict("admin"), getAllUser);
 
 export default router;
