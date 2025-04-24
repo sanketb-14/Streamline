@@ -22,7 +22,9 @@ app.use("/public", express.static(path.join(__dirname, "public")));
 
 app.use(
   cors({
-    origin: "http://localhost:5173", //  frontend URL
+    origin: ["http://localhost:5173",//  frontend URL
+    'https://your-frontend-url.vercel.app', ],// Your live frontend URL
+
     credentials: true,
   })
 );
@@ -44,6 +46,9 @@ app.use(
   })
 );
 app.use(express.static(join(__dirname, "public")));
+// Increase payload limit for JSON and URL-encoded bodies
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
