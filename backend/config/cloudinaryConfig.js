@@ -16,41 +16,41 @@ dotenv.config({ path: path.join(__dirname, '../config.env') });
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-    timeout: 60000 // 60 seconds timeout (up from default 30s)
+    api_secret: process.env.CLOUDINARY_API_SECRET
   });
 
 
 
 // Create storages for different file types
 const videoStorage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (req, file) => {
-    const timestamp = Date.now();
-    const originalName = file.originalname.replace(/\.[^/.]+$/, "");
-    return {
-      folder: 'StreamLine/videos',
-      resource_type: 'video',
-      allowed_formats: ['mp4', 'mov', 'avi', 'webm'],
-      chunk_size: 60000000, // 60MB chunks (critical for large files)
-      transformation: [{ quality: 'auto' }],
-      overwrite: false,
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+        const timestamp = Date.now();
+        const originalName = file.originalname.replace(/\.[^/.]+$/, "");
+      return {
+        folder: 'StreamLine/videos',
+        resource_type: 'video',
+        allowed_formats: ['mp4', 'mov', 'avi', 'webm'],
+        transformation: [{ quality: 'auto' }],
+        overwrite: false, 
       invalidate: true,
-      public_id: `video-${timestamp}-${originalName}`,
-      eager: [
-        { 
-          format: "jpg",
-          transformation: [
-            { width: 320, height: 180, crop: "fill" },
-            { quality: "auto" },
-            { start_offset: "10%" }
-          ]
-        }
-      ],
-      eager_async: true
-    };
-  }
-});
+        public_id: `video-${timestamp}-${originalName}`,
+        chunk_size: 6000000,
+        eager: [
+            { 
+              format: "jpg", 
+              transformation: [
+                { width: 320, height: 180, crop: "fill" },
+                { quality: "auto" },
+                { start_offset: "10%" }
+              ]
+            }
+          ],
+          eager_async: true
+        
+      };
+    }
+  });
 
 const imageStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
@@ -71,23 +71,21 @@ const thumbnailStorage = new CloudinaryStorage({
 });
 
 // Create multer upload instances
-// Create multer instance with proper limits
 export const uploadVideo = multer({ 
-  storage: videoStorage,
-  limits: { 
-    fileSize: 100 * 1024 * 1024, // 100MB limit
-    files: 1,
-    fieldSize: 100 * 1024 * 1024 // Important for large files
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('video/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only video files are allowed!'), false);
+    storage: videoStorage,
+    limits: { 
+      fileSize: 100 * 1024 * 1024, // 100MB limit
+      files: 1
+    },
+    fileFilter: (req, file, cb) => {
+        
+      if (file.mimetype.startsWith('video/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only video files are allowed!'), false);
+      }
     }
-  }
-}); 
-
+  });
 export const uploadImage = multer({ 
   storage: imageStorage,
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit

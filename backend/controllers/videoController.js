@@ -26,7 +26,7 @@ const multerFilter = (req, file, cb) => {
   }
 };
 
-export const uploadVideoFile = uploadVideo.single("video");
+
 
 export const validateTags = catchAsync(async (req, res, next) => {
   const allowedTags = [
@@ -624,3 +624,34 @@ export const cleanupOnError = catchAsync(async (req, res, next) => {
   }
   next(); // Continue to error handler
 });
+
+export const uploadVideoFile = (req, res, next) => {
+  const upload = uploadVideo.single('video');
+  
+  upload(req, res, function(err) {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          status: 'error',
+          message: 'File too large: Maximum size is 100MB'
+        });
+      }
+      
+      if (err.message && err.message.includes('timeout')) {
+        return res.status(408).json({
+          status: 'error',
+          message: 'Upload timed out. Try a smaller file or check your connection.'
+        });
+      }
+      
+      // Log detailed error for debugging
+      console.error('Upload error:', err);
+      
+      return res.status(400).json({
+        status: 'error',
+        message: `Upload failed: ${err.message}`
+      });
+    }
+    next();
+  });
+};
