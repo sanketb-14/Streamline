@@ -1,21 +1,54 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Loader2, Video } from "lucide-react";
+import { X, Upload, Loader2, Video, Tag, FileText } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "../../Services/axios";
 import toast from "react-hot-toast";
 
-const CustomProgressBar = ({ progress }) => (
-  <div className="w-full bg-gray-200 rounded-full h-2.5">
-    <div
-      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-      style={{ width: `${progress}%` }}
-    />
-  </div>
-);
+/**
+ * CustomProgressBar - Displays upload progress with animated effects
+ */
+const CustomProgressBar = ({ progress, isPending }) => {
+  const [animatedProgress, setAnimatedProgress] = useState(0);
 
+  useEffect(() => {
+    setAnimatedProgress(progress);
+    
+    if (isPending && progress >= 95) {
+      const interval = setInterval(() => {
+        setAnimatedProgress(current => {
+          if (current >= 99) return 97;
+          return Math.min(99, current + 0.2);
+        });
+      }, 500);
+      
+      return () => clearInterval(interval);
+    }
+  }, [progress, isPending]);
+
+  return (
+    <div className="w-full bg-base-200 rounded-full h-2">
+      <div
+        className="bg-primary h-2 rounded-full transition-all duration-300"
+        style={{ width: `${animatedProgress}%` }}
+      />
+    </div>
+  );
+};
+
+/**
+ * VideoUploadModal - Component for uploading videos with progress tracking
+ * 
+ * Features:
+ * - Responsive design with DaisyUI styling
+ * - Animated transitions with Framer Motion
+ * - Progress tracking with visual feedback
+ * - Form validation
+ * - Tag management
+ * - Video preview
+ */
 const VideoUploadModal = ({ isOpen, onClose }) => {
   const queryClient = useQueryClient();
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -29,18 +62,11 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
   const [videoPreview, setVideoPreview] = useState(null);
   const [errors, setErrors] = useState({});
 
-  // Predefined valid tags - replace these with your actual valid tags
+  // Predefined valid tags
   const VALID_TAGS = [
-    "Technology",
-    "Education",
-    "Entertainment",
-    "Music",
-    "Gaming",
-    "News",
-    "Sports",
-    "Comedy",
-    "Film",
-    "Science",
+    "Technology", "Education", "Entertainment", 
+    "Music", "Gaming", "News", 
+    "Sports", "Comedy", "Film", "Science"
   ];
 
   const uploadVideoMutation = useMutation({
@@ -50,6 +76,8 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
       formDataToSend.append("title", data.title);
       formDataToSend.append("description", data.description);
       data.tags.forEach((tag) => formDataToSend.append("tags", tag));
+
+      setUploadProgress(1);
 
       const response = await axiosInstance.post("/videos", formDataToSend, {
         headers: {
@@ -65,6 +93,7 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
       return response.data;
     },
     onSuccess: () => {
+      setUploadProgress(100);
       queryClient.invalidateQueries(["channel"]);
       toast.success("Video uploaded successfully!");
       onClose();
@@ -72,14 +101,13 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
     },
     onError: (error) => {
       const errorMessage = error.response?.data?.message || error.message;
-
       const newErrors = {};
 
       if (errorMessage.includes("title")) {
         if (errorMessage.includes("at least 10 characters")) {
-          newErrors.title = "Title must be at least 10 characters long";
+          newErrors.title = "Title must be at least 10 characters";
         } else if (errorMessage.includes("at max 50 characters")) {
-          newErrors.title = "Title must be at most 50 characters long";
+          newErrors.title = "Title must be at most 50 characters";
         }
       }
 
@@ -88,9 +116,7 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
       }
 
       if (errorMessage.includes("not a valid enum value")) {
-        newErrors.tags = `Please select from valid tags: ${VALID_TAGS.join(
-          ", "
-        )}`;
+        newErrors.tags = `Please select from valid tags: ${VALID_TAGS.join(", ")}`;
       }
 
       if (errorMessage.includes("up to 5 tags")) {
@@ -118,7 +144,6 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
     e.preventDefault();
     const tag = tagInput.trim();
 
-    // Check if we already have 5 tags
     if (formData.tags.length >= 5) {
       setErrors((prev) => ({ ...prev, tags: "You can only add up to 5 tags" }));
       return;
@@ -168,11 +193,10 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
     e.preventDefault();
     setErrors({});
 
-    // Validate title length
     if (formData.title.length < 10) {
       setErrors((prev) => ({
         ...prev,
-        title: "Title must be at least 10 characters long",
+        title: "Title must be at least 10 characters",
       }));
       return;
     }
@@ -185,6 +209,16 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
     uploadVideoMutation.mutate(formData);
   };
 
+  const getUploadStatusMessage = () => {
+    if (uploadProgress < 95) {
+      return "Uploading video...";
+    } else if (uploadProgress >= 95 && uploadProgress < 100) {
+      return "Processing video...";
+    } else {
+      return "Upload complete!";
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -192,39 +226,48 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-base-100 bg-opacity-50 z-50 flex items-center justify-center "
+          className="fixed inset-0 bg-base-100/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-base-100 rounded-xl shadow-xl w-full max-w-2xl m-4 overflow-hidden"
+            className="bg-base-100 rounded-box shadow-2xl w-full max-w-2xl border border-base-300 overflow-hidden"
           >
             {/* Header */}
-            <div className="relative bg-gradient-to-r from-base-300 via-secondary to-base-200 px-6 py-4 ">
-              <h2 className="text-xl font-bold text-base-content">
-                Upload New Video
-              </h2>
-              <button
-                onClick={onClose}
-                className="absolute text-base-content/75 right-4 top-4 text- hover:text-base-content"
-              >
-                <X className="w-6 h-6" />
-              </button>
+            <div className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 px-6 py-4 border-b border-base-300">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Video className="w-6 h-6 text-primary" />
+                  <h2 className="text-xl font-bold text-base-content">
+                    Upload New Video
+                  </h2>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="btn btn-ghost btn-sm btn-circle"
+                  disabled={uploadVideoMutation.isPending}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Upload Progress */}
             {uploadVideoMutation.isPending && (
-              <div className="px-6 py-3 bg-blue-50">
+              <div className="px-6 py-3 bg-primary/5">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-blue-600">
-                    Uploading video...
+                  <span className="text-sm text-primary">
+                    {getUploadStatusMessage()}
                   </span>
-                  <span className="text-sm font-medium text-blue-600">
-                    {uploadProgress}%
+                  <span className="text-sm font-medium text-primary">
+                    {Math.min(Math.round(uploadProgress), 99)}%
                   </span>
                 </div>
-                <CustomProgressBar progress={uploadProgress} />
+                <CustomProgressBar 
+                  progress={uploadProgress} 
+                  isPending={uploadVideoMutation.isPending} 
+                />
               </div>
             )}
 
@@ -232,27 +275,32 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {/* Video Upload */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-primary">
-                  Video File
+                <label className="label">
+                  <span className="label-text text-base-content">
+                    Video File
+                    <span className="text-error">*</span>
+                  </span>
                 </label>
                 <div className="relative">
                   {!videoPreview ? (
-                    <label className="cursor-pointer flex items-center justify-center border-2 border-dashed border-base-content rounded-lg h-48 hover:border-blue-500 transition-colors">
-                      <div className="text-center">
-                        <Upload className="mx-auto w-12 h-12 text-base-content" />
-                        <span className="mt-2 block text-sm text-base-content">
-                          Click to upload video
-                        </span>
-                      </div>
+                    <label className="cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-base-300 rounded-box h-48 hover:border-primary transition-colors gap-2">
+                      <Upload className="w-10 h-10 text-base-content/50" />
+                      <span className="text-sm text-base-content/70">
+                        Click to upload video
+                      </span>
+                      <span className="text-xs text-base-content/50">
+                        MP4, WebM, or MOV (max 100MB)
+                      </span>
                       <input
                         type="file"
                         accept="video/*"
                         onChange={handleVideoChange}
                         className="hidden"
+                        required
                       />
                     </label>
                   ) : (
-                    <div className="relative h-48 bg-black rounded-lg">
+                    <div className="relative h-48 bg-base-300 rounded-box overflow-hidden">
                       <video
                         src={videoPreview}
                         className="w-full h-full object-contain"
@@ -265,9 +313,9 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
                           setVideoPreview(null);
                           setFormData((prev) => ({ ...prev, video: null }));
                         }}
-                        className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-base-content"
+                        className="absolute top-2 right-2 btn btn-error btn-xs btn-circle"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3 h-3" />
                       </button>
                     </div>
                   )}
@@ -275,34 +323,45 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
               </div>
 
               {/* Title */}
-              <div>
-                <label className="block text-sm font-medium text-primary mb-2">
-                  Title
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-base-content">
+                    Title
+                    <span className="text-error">*</span>
+                  </span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => {
-                    setFormData((prev) => ({ ...prev, title: e.target.value }));
-                    if (e.target.value.length >= 10) {
-                      setErrors((prev) => ({ ...prev, title: undefined }));
-                    }
-                  }}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.title ? "border-red-500" : "border-gray-300"
-                  }`}
-                  placeholder="Enter video title (minimum 10 characters)"
-                  required
-                />
+                <div className="relative">
+                  <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-base-content/50" />
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => {
+                      setFormData((prev) => ({ ...prev, title: e.target.value }));
+                      if (e.target.value.length >= 10) {
+                        setErrors((prev) => ({ ...prev, title: undefined }));
+                      }
+                    }}
+                    className={`input input-bordered w-full pl-10 ${
+                      errors.title ? "input-error" : ""
+                    }`}
+                    placeholder="Enter video title (minimum 10 characters)"
+                    required
+                  />
+                </div>
                 {errors.title && (
-                  <p className="mt-1 text-sm text-red-500">{errors.title}</p>
+                  <label className="label">
+                    <span className="label-text-alt text-error">{errors.title}</span>
+                  </label>
                 )}
               </div>
 
               {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-primary mb-2">
-                  Description
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-base-content">
+                    Description
+                    <span className="text-error">*</span>
+                  </span>
                 </label>
                 <textarea
                   value={formData.description}
@@ -312,78 +371,86 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
                       description: e.target.value,
                     }))
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32"
+                  className="textarea textarea-bordered w-full h-32"
                   placeholder="Enter video description"
                   required
                 />
               </div>
 
-              {/* Tags section in the form */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tags (up to 5)
+              {/* Tags */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text text-base-content">
+                    Tags (up to 5)
+                  </span>
                 </label>
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {formData.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
-                    >
+                  {formData.tags.map((tag) => (
+                    <div key={tag} className="badge badge-primary gap-2">
                       {tag}
                       <button
                         type="button"
                         onClick={() => removeTag(tag)}
-                        className="ml-2 text-blue-600 hover:text-blue-800"
+                        className="hover:text-error"
                       >
                         <X className="w-3 h-3" />
                       </button>
-                    </span>
+                    </div>
                   ))}
                 </div>
                 <div className="flex gap-2">
-                  <select
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.tags ? "border-red-500" : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Select a tag</option>
-                    {VALID_TAGS.map((tag) => (
-                      <option key={tag} value={tag}>
-                        {tag}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative flex-1">
+                    <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-base-content/50" />
+                    <select
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      className={`select select-bordered w-full pl-10 ${
+                        errors.tags ? "select-error" : ""
+                      }`}
+                    >
+                      <option value="">Select a tag</option>
+                      {VALID_TAGS.map((tag) => (
+                        <option key={tag} value={tag}>
+                          {tag}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <button
                     type="button"
                     onClick={handleTagAdd}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    className="btn btn-primary"
+                    disabled={!tagInput || formData.tags.length >= 5}
                   >
                     Add
                   </button>
                 </div>
                 {errors.tags && (
-                  <p className="mt-1 text-sm text-red-500">{errors.tags}</p>
+                  <label className="label">
+                    <span className="label-text-alt text-error">{errors.tags}</span>
+                  </label>
                 )}
-                <p className="mt-1 text-sm text-gray-500">
-                  {formData.tags.length}/5 tags used
-                </p>
+                <label className="label">
+                  <span className="label-text-alt text-base-content/50">
+                    {formData.tags.length}/5 tags used
+                  </span>
+                </label>
               </div>
 
-              {/* Submit Button */}
-              <div className="flex justify-end gap-3">
+              {/* Submit Buttons */}
+              <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  className="btn btn-ghost"
+                  disabled={uploadVideoMutation.isPending}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={uploadVideoMutation.isPending}
-                  className="px-4 py-2 bg-gradient-to-tr from-base-100 to-primary text-base-content rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 flex items-center gap-2"
+                  disabled={uploadVideoMutation.isPending || !formData.video}
+                  className="btn btn-primary gap-2"
                 >
                   {uploadVideoMutation.isPending ? (
                     <>

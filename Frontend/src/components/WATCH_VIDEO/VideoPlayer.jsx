@@ -41,10 +41,10 @@ const VideoPlayer = ({
   const [showControls, setShowControls] = useState(true);
   const [isBuffering, setIsBuffering] = useState(true);
   const hideControlsTimeout = useRef(null);
-
+ console.log(video);
+ 
   const {
     isSubscribed,
-
     subscribeToChannel,
     unsubscribeFromChannel,
     subscribers,
@@ -52,8 +52,6 @@ const VideoPlayer = ({
     isSubscribing,
     isUnsubscribing
   } = useSubscribers(video.channel.id);
-
-  // console.log("watch video", isSubscribed, video);
 
   const handleSubscribeClick = () => {
     try {
@@ -64,7 +62,6 @@ const VideoPlayer = ({
       }
     } catch (error) {
       console.error("Subscription error:", error);
-
       toast.error(error.message || "Failed to update subscription");
     }
   };
@@ -72,6 +69,15 @@ const VideoPlayer = ({
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (!videoRef.current) return;
+      
+      // Skip keyboard shortcuts if user is typing in a form element
+      if (
+        document.activeElement.tagName === "INPUT" ||
+        document.activeElement.tagName === "TEXTAREA" ||
+        document.activeElement.isContentEditable
+      ) {
+        return;
+      }
 
       switch (e.key.toLowerCase()) {
         case " ":
@@ -219,7 +225,7 @@ const VideoPlayer = ({
         <video
           ref={videoRef}
           className="w-full h-full cursor-pointer"
-          src={video.filePath}
+          src={video.fileUrl}
           onClick={handlePlayPause}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
@@ -229,42 +235,42 @@ const VideoPlayer = ({
         />
 
         {!isPlaying && showControls && (
-          <div className="absolute inset-0 flex items-center justify-center bg-base-100/20">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-4 bg-base-200/50 rounded-full"
+              className="p-4 bg-black/50 rounded-full text-white"
               onClick={handlePlayPause}
             >
-              <Play size={32} className="text-base-content" />
+              <Play size={32} />
             </motion.button>
           </div>
         )}
 
         {isBuffering && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
         <div
-          className={`absolute bottom-0 left-0 right-0 bg-base-100-to-t from-base-200 to-transparent p-4 transition-opacity duration-300 ${
+          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${
             showControls ? "opacity-100" : "opacity-0"
           }`}
         >
           <div className="group/progress relative">
             <input
               type="range"
-              className="w-full h-1 bg-secondary rounded-lg appearance-none cursor-pointer"
+              className="w-full h-1 bg-gray-400 rounded-lg appearance-none cursor-pointer"
               value={(currentTime / duration) * 100 || 0}
               onChange={handleSeek}
             />
-            <div className="hidden group-hover/progress:block absolute -top-8 left-1/2 transform -translate-x-1/2 bg-base-100/80 px-2 py-1 rounded text-xs">
+            <div className="hidden group-hover/progress:block absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black/80 px-2 py-1 rounded text-xs text-white">
               {formatTime(currentTime)}
             </div>
           </div>
 
-          <div className="flex justify-between text-base-content/50 text-sm mt-1">
+          <div className="flex justify-between text-gray-300 text-sm mt-1">
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(duration)}</span>
           </div>
@@ -274,7 +280,7 @@ const VideoPlayer = ({
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handlePlayPause}
-                className="p-2 hover:bg-base-200 rounded-full"
+                className="p-2 hover:bg-white/20 rounded-full text-white"
               >
                 {isPlaying ? <Pause size={20} /> : <Play size={20} />}
               </motion.button>
@@ -283,7 +289,7 @@ const VideoPlayer = ({
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={handleMuteToggle}
-                  className="p-2 hover:bg-base-200 rounded-full"
+                  className="p-2 hover:bg-white/20 rounded-full text-white"
                 >
                   {isMuted || volume === 0 ? (
                     <VolumeX size={20} />
@@ -294,7 +300,7 @@ const VideoPlayer = ({
 
                 <input
                   type="range"
-                  className="w-0 group-hover/volume:w-20 transition-all duration-200 h-1 bg-base-200 rounded-lg appearance-none cursor-pointer"
+                  className="w-0 group-hover/volume:w-20 transition-all duration-200 h-1 bg-gray-400 rounded-lg appearance-none cursor-pointer"
                   value={isMuted ? 0 : volume * 100}
                   onChange={handleVolumeChange}
                   min="0"
@@ -308,18 +314,18 @@ const VideoPlayer = ({
               <div className="relative group/speed">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  className="p-2 hover:bg-base-200 rounded-full flex items-center gap-1"
+                  className="p-2 hover:bg-white/20 rounded-full flex items-center gap-1 text-white"
                 >
                   <Gauge size={20} /> {playbackSpeed}x
                 </motion.button>
 
-                <div className="hidden group-hover/speed:block absolute bottom-full mb-2 bg-base-200/90 rounded-lg py-2">
+                <div className="hidden group-hover/speed:block absolute bottom-full mb-2 bg-black/90 rounded-lg py-2">
                   {[0.5, 1, 1.5, 2].map((speed) => (
                     <button
                       key={speed}
                       onClick={() => handlePlaybackSpeedChange(speed)}
-                      className={`block w-full px-4 py-1 text-left hover:bg-base-300 ${
-                        playbackSpeed === speed ? "text-blue-500" : ""
+                      className={`block w-full px-4 py-1 text-left hover:bg-white/20 text-white ${
+                        playbackSpeed === speed ? "text-blue-400" : ""
                       }`}
                     >
                       {speed}x
@@ -331,7 +337,7 @@ const VideoPlayer = ({
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handleFullscreenToggle}
-                className="p-2 hover:bg-base-200 rounded-full"
+                className="p-2 hover:bg-white/20 rounded-full text-white"
               >
                 <Maximize2 size={20} />
               </motion.button>
@@ -340,8 +346,9 @@ const VideoPlayer = ({
         </div>
       </div>
 
+      {/* Rest of the component remains the same */}
       <div className="space-y-4">
-        <h1 className="text-xl font-bold">{video.title}</h1>
+        <h1 className="text-xl font-bold text-base-content/80">{video.title}</h1>
 
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -357,10 +364,10 @@ const VideoPlayer = ({
 
             <div>
               <Link to={`/channel/${video.channel.id}`}>
-                <h3 className="font-medium">{video.channel.name || "Channel"}</h3>
+                <h3 className="font-medium text-base-content">{video.channel.name || "Channel"}</h3>
               </Link>
-              <p className="text-sm text-base-content/50">
-              {typeof subscribersCount === 'number' ? subscribersCount : 0} subscribers
+              <p className="text-sm text-base-content/80">
+                {typeof subscribersCount === 'number' ? subscribersCount : 0} subscribers
               </p>
             </div>
 
@@ -369,7 +376,7 @@ const VideoPlayer = ({
               onClick={handleSubscribeClick}
               disabled={isSubscribing || isUnsubscribing}
               className={`px-4 py-2 rounded-full flex items-center gap-2 ${
-                isSubscribed ? "bg-base-200" : "bg-red-600 text-white"
+                isSubscribed ? "bg-base-200 text-base-content" : "bg-red-600 text-base-content"
               } ${
                 isSubscribing || isUnsubscribing
                   ? "opacity-50 cursor-not-allowed"
@@ -388,17 +395,17 @@ const VideoPlayer = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="bg-base-200 rounded-full flex items-center">
+            <div className="bg-base-200/75 rounded-full flex items-center">
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={likeVideo}
                 disabled={isLiking || isDisliking}
-                className={`px-4 py-2 flex items-center gap-2 border-r border-base-200 
-                  ${isLiked ? "text-blue-500" : ""}
+                className={`px-4 py-2 flex items-center gap-2 border-r border-base-200 text-base-content
+                  ${isLiked ? "text-blue-400" : ""}
                   ${
                     isLiking || isDisliking
                       ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-base-300 rounded-full"
+                      : "hover:bg-base-200 rounded-full"
                   }
                 `}
               >
@@ -412,14 +419,14 @@ const VideoPlayer = ({
                 whileTap={{ scale: 0.95 }}
                 onClick={dislikeVideo}
                 disabled={isLiking || isDisliking}
-                className={`px-4 py-2 flex items-center gap-2
-            ${isDisliked ? "text-blue-500" : ""}
-            ${
-              isLiking || isDisliking
-                ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-base-300 rounded-full"
-            }
-          `}
+                className={`px-4 py-2 flex items-center gap-2 text-base-content
+                  ${isDisliked ? "text-blue-400" : ""}
+                  ${
+                    isLiking || isDisliking
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-base-200 rounded-full"
+                  }
+                `}
               >
                 <ThumbsDown
                   size={20}
@@ -430,30 +437,28 @@ const VideoPlayer = ({
 
             <motion.button
               whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-base-200 rounded-full flex items-center gap-2"
+              className="px-4 py-2 bg-base-200/75 rounded-full flex items-center gap-2 text-base-content hover:bg-base-200"
             >
               <Share size={20} /> Share
             </motion.button>
 
             <motion.button
               whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-base-200 rounded-full flex items-center gap-2"
+              className="px-4 py-2 bg-base-200/75 rounded-full flex items-center gap-2 text-base-content hover:bg-base-200"
             >
               <Download size={20} /> Download
             </motion.button>
 
             <motion.button
               whileTap={{ scale: 0.95 }}
-              className="p-2 bg-base-200 rounded-full"
+              className="p-2 bg-base-200/80 rounded-full text-base-content hover:bg-base-200"
             >
               <MoreHorizontal size={20} />
             </motion.button>
           </div>
         </div>
 
-        <div className="bg-base-200 rounded-lg p-4">
-          <p className="text-sm text-base-content/75">{video.description}</p>
-        </div>
+       
       </div>
     </div>
   );

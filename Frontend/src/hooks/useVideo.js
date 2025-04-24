@@ -27,10 +27,10 @@ export const useVideo = (videoId) => {
         // Transform video data to match UI requirements
         return {
           ...video,
-          filePath:`${baseURL}/${video.fileUrl}`,
+          filePath:video.fileUrl,
           videoId: video._id,
           channelName: video.channel.name,
-          channelThumbnail: `${baseURL}/img/users/${video.channel.owner.photo}`,
+          channelThumbnail: video.channel.owner.photo,
           subscribers: `${(video.channel.subscribers.length || 0).toLocaleString()}`,
           likes: `${(video.likes?.length || 0).toLocaleString()}`,
           views: `${(video?.views || 0).toLocaleString()}`,
@@ -62,7 +62,7 @@ export const useVideo = (videoId) => {
         return response.data.data.videos.map((video) => 
           
           ({
-          thumbnail: `${baseURL}${video.thumbnail}` ,
+          thumbnail: video.thumbnail ,
           
           
           title: video.title,
@@ -120,7 +120,6 @@ const getCommentsQuery = useQuery({
       }
       
       const response = await axiosInstance.post(`/videos/${videoId}/like`);
-      console.log("response" , response);
       
       return response.data.data;
     },

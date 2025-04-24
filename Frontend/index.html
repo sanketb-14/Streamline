@@ -1,13 +1,46 @@
 <!doctype html>
-<html lang="en" data-theme="night">
+<html lang="en" data-theme="corporate">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="description" content="StreamLine - A modern video sharing platform where you can upload, watch, like, and comment on videos. Join our community of creators and viewers.">
+    <meta name="keywords" content="videos, streaming, upload, watch, like, comment, social media, content creators">
+    <meta property="og:title" content="StreamLine - Video Sharing Platform">
+    <meta property="og:description" content="Share your videos with the world. Watch, upload, like and comment on videos.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://yourdomain.com">
+    <meta property="og:image" content="/preview-image.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="icon" type="image/svg+xml" href="./public//logo y.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+    <title>StreamLine | Video Sharing Platform</title>
+    
+    <!-- Preconnect to important origins -->
+    <link rel="preconnect" href="https://api.yourdomain.com">
+    <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/src/main.jsx" as="script">
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Structured data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "StreamLine",
+      "url": "https://yourdomain.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://yourdomain.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
   </body>
 </html>

@@ -13,8 +13,15 @@ const VideoSchema = new mongoose.Schema({
     trim: true,
     maxLength: [500, "Description must be at 100 characters"],
   },
-  fileUrl: { type: String, required: true },
-  thumbnail: String,
+  fileUrl: { type: String, required: [true, "A video must have a file URL"] },
+  filePublicId: {
+    type: String
+  },
+
+  thumbnail: {
+    type: String,
+    required: [true, "A video must have a thumbnail"],
+  },
   views: {
     type: Number,
     default: 0,

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion"
 import VideoList from "../VIDEOLIST/VideoList"
-import TagFilter from "../VIDEOLIST/TogFilter"
+
 import VideoFilter from "../VIDEOLIST/VideoFilterBar"
 
 export default function Home() {
@@ -18,8 +18,8 @@ export default function Home() {
         >
           Discover Videos
         </motion.h1>
-        {/* <TagFilter />
-         */}
+       
+        
          <VideoFilter/>
         <VideoList />
       </div>

@@ -6,10 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// At the top of config/config.js
-console.log('Config file path:', path.join(__dirname, '..', 'config.env'));
-console.log('Current working directory:', process.cwd());
-console.log('Loading environment variables...');
+
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '..', 'config.env') });

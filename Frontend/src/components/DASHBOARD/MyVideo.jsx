@@ -60,7 +60,7 @@ const VideoCard = ({ video, onEdit, onDelete, isOwner }) => {
       <div className="relative aspect-video overflow-hidden">
         <Link to={`/watch/${video._id}`}>
           <motion.img
-            src={`http://localhost:4000/public/${video.thumbnail}`}
+            src={video.thumbnail}
             alt={video.title}
             className="w-full h-full object-cover"
             whileHover={{ scale: 1.05 }}

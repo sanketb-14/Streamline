@@ -57,7 +57,6 @@ const userSchema = new mongoose.Schema({
   channel: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Channel",
-    unique: true,
     required:false ,
     
   },

@@ -5,6 +5,7 @@ import { catchAsync } from "../utils/catchAsync.js";
 import multer from "multer";
 import sharp from "sharp";
 import Video from "../models/Video.js";
+import { uploadImage } from "../config/cloudinaryConfig.js";
 
 function filterObj(obj, ...allowFields) {
   const newObj = {};
@@ -39,23 +40,9 @@ const upload = multer({
   fileFilter: multerFilter,
 });
 
-export const uploadUserPhoto = upload.single("photo");
+export const uploadUserPhoto = uploadImage.single("photo");
 
-export const resizeUserPhot = (req, res, next) => {
-  if (!req.file) return next();
 
-  req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
-
-  sharp(req.file.buffer)
-    .resize(250, 250)
-    .toFormat("jpeg")
-    .jpeg({
-      quality: 90,
-    })
-    .toFile(`public/img/users/${req.file.filename}`);
-
-  next();
-};
 
 export const getMe = catchAsync(async (req, res, next) => {
   // 1. Get user data (assuming req.user.id exists from auth middleware)
@@ -108,25 +95,41 @@ export const getMe = catchAsync(async (req, res, next) => {
 });
 
 export const updateMe = catchAsync(async (req, res, next) => {
-  // only fullName,email and photo user can update
   const filter = filterObj(req.body, "fullName", "email");
-  if (req.file) filter.photo = req.file.filename;
 
-  const user = await User.findByIdAndUpdate(req.user.id, filter, {
-    new: true,
-    runValidators: true,
-  });
 
-  if (!user) {
-    return next(new AppError("User not found", 404));
+  
+  
+  // If file is uploaded, use the Cloudinary URL
+  if (req.file) {
+    
+    filter.photo = req.file.path; // Cloudinary returns the URL in req.file.path
   }
 
-  res.status(200).json({
-    status: "success",
-    data: {
-      user,
-    },
-  });
+  console.log('Final update filter:', filter);
+
+  try {
+    const user = await User.findByIdAndUpdate(req.user.id, filter, {
+      new: true,
+      runValidators: true,
+    });
+
+  
+
+    if (!user) {
+      return next(new AppError("User not found", 404));
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        user,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    return next(error);
+  }
 });
 
 export const deleteMe = catchAsync(async (req, res, next) => {

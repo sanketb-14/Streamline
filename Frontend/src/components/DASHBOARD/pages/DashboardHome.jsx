@@ -1,28 +1,58 @@
-import React, { useState, useEffect } from "react";
-import { BarChart3, Users, Video, Eye } from "lucide-react";
+/**
+ * DashboardHome Component
+ * 
+ * A comprehensive dashboard displaying channel statistics and videos
+ * with optimized performance and responsive design using DaisyUI theming.
+ */
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { BarChart3, Users, Video, Eye, Award, TrendingUp } from "lucide-react";
 import { useChannel } from "../../../hooks/useChannel";
-import Loader from "../../Loader";
 import { motion } from "framer-motion";
 import MyVideo from "../MyVideo";
-import notFound from "../../../assets/not found.svg";
+import notFoundImage from "../../../assets/not found.svg";
 import { useAuth } from "../../../hooks/useAuth";
 import { Link } from "react-router-dom";
 import LoadingSkeleton from "../LoadingSkeleton";
 import AddVideoButton from "../AddVideo";
 
-// Card Component with Animation
-export const Card = ({ children, className = "" }) => (
+// Animation variants for consistent effects
+const animationVariants = {
+  container: {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1, 
+      transition: { staggerChildren: 0.1 } 
+    }
+  },
+  item: {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { type: "spring", stiffness: 300, damping: 15 }
+    }
+  }
+};
+
+/**
+ * Memoized Card Component for dashboard statistics
+ * Applies consistent styling and animations across cards
+ */
+export const Card = React.memo(({ children, className = "" }) => (
   <motion.div
-    className={`bg-gradient-to-br from-base-100 to-base-300 p-6 rounded-lg shadow ${className}`}
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
+    className={`bg-gradient-to-br from-base-100 to-base-200 h-auto min-h-[4rem] p-4 sm:p-6 rounded-xl shadow-md hover:shadow-lg transition-all ${className}`}
+    variants={animationVariants.item}
+    whileHover={{ y: -5, transition: { type: "spring", stiffness: 300 } }}
   >
     {children}
   </motion.div>
-);
+));
 
-const DashboardLayout = () => {
+/**
+ * DashboardHome - Main dashboard component for channel creators
+ * Displays channel statistics, recent performance, and uploaded videos
+ */
+const DashboardHome = () => {
   const {
     channelData,
     isLoadingChannel,
@@ -34,66 +64,89 @@ const DashboardLayout = () => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Effect to ensure channel data is loaded when component mounts
+  // Fetch channel data if not already loaded
   useEffect(() => {
     if (user?.channel?._id && !channelData && !isLoadingChannel) {
-      getChannel(); // Updated to call getChannel when conditions are met
+      getChannel();
     }
   }, [user?.channel?._id, channelData, isLoadingChannel, getChannel]);
 
-  const stats = [
+  // Toggle modal handler with useCallback for optimization
+  const toggleModal = useCallback(() => {
+    setIsModalOpen(prev => !prev);
+  }, []);
+
+  // Memoized statistics data to prevent unnecessary re-renders
+  const stats = useMemo(() => [
     {
       title: "Total Views",
-      value: channelData?.statistics?.totalViews || "0",
-      icon: <Eye className="w-6 h-6 text-blue-500" />,
+      value: channelData?.statistics?.totalViews?.toLocaleString() || "0",
+      icon: <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-info" />,
       change: "+12%",
+      color: "text-info"
     },
     {
       title: "Subscribers",
-      value: channelData?.statistics?.totalSubscribers || "0",
-      icon: <Users className="w-6 h-6 text-green-500" />,
+      value: channelData?.statistics?.totalSubscribers?.toLocaleString() || "0",
+      icon: <Users className="w-5 h-5 sm:w-6 sm:h-6 text-success" />,
       change: "+4.3%",
+      color: "text-success"
     },
     {
       title: "Videos",
-      value: channelData?.statistics?.totalVideos || "0",
-      icon: <Video className="w-6 h-6 text-purple-500" />,
+      value: channelData?.statistics?.totalVideos?.toLocaleString() || "0",
+      icon: <Video className="w-5 h-5 sm:w-6 sm:h-6 text-secondary" />,
       change: "+2",
+      color: "text-secondary"
     },
     {
       title: "Avg. Watch Time",
       value: "12m 30s",
-      icon: <BarChart3 className="w-6 h-6 text-orange-500" />,
+      icon: <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />,
       change: "+1m 12s",
+      color: "text-accent"
     },
-  ];
+    {
+      title: "Engagement Rate",
+      value: "8.7%",
+      icon: <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />,
+      change: "+0.5%",
+      color: "text-primary"
+    },
+    {
+      title: "Top Performance",
+      value: "4.8/5",
+      icon: <Award className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />,
+      change: "+0.2",
+      color: "text-warning"
+    },
+  ], [channelData?.statistics]);
 
+  // Render loading state
   if (isLoadingChannel || isFetchingChannel) {
     return <LoadingSkeleton />;
   }
 
+  // Render error state or channel not found
   if (channelError || (!channelData && !isLoadingChannel)) {
-    const errorMessage =
-      channelError?.message ||
-      channelError?.toString() ||
-      "An error occurred while loading channel data";
+    const errorMessage = channelError?.message || "An error occurred while loading channel data";
     return (
-      <div className="min-h-screen bg-base-100 flex items-center justify-center relative">
-        {/* SVG or Image */}
-        <div className="absolute inset-0 z-1 flex items-center justify-center">
+      <div className="min-h-screen bg-base-100 flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 z-0 flex items-center justify-center">
           <img
-            src={notFound}
-            alt="notFound"
-            className="w-full h-full object-cover opacity-50"
+            src={notFoundImage}
+            alt="Channel not found"
+            className="w-full h-full object-cover opacity-20 md:opacity-40"
+            loading="lazy"
           />
         </div>
-
-        {/* Error Content */}
-        <div className="relative z-20 text-center bg-base-200 p-8 rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold text-red-500">{`${user.fullName}'s channel Not Found`}</h2>
-          <p className="text-gray-600 mt-2">{errorMessage}</p>
+        <div className="relative z-10 text-center bg-base-200/90 backdrop-blur-sm p-6 md:p-8 rounded-xl shadow-lg max-w-md mx-4">
+          <h2 className="text-xl md:text-2xl font-bold text-error">
+            {`${user?.fullName}'s Channel Not Found`}
+          </h2>
+          <p className="text-base-content/80 mt-2 text-sm md:text-base">{errorMessage}</p>
           <Link to="/dashboard/create">
-            <button className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300">
+            <button className="mt-4 px-6 py-2 bg-primary text-primary-content rounded-lg hover:bg-primary-focus transition-all">
               Create Channel
             </button>
           </Link>
@@ -102,103 +155,128 @@ const DashboardLayout = () => {
     );
   }
 
+  // Return null if user has no channel
   if (!user?.channel) {
     return null;
   }
 
-  console.log("data ", channelData);
-  
+  // Default profile image if none is provided
+  const profileImage = channelData?.owner?.photo === "default.webp" 
+    ? "https://www.clipartkey.com/mpngs/m/152-1520367_user-profile-default-image-png-clipart-png-download.png" 
+    : channelData?.owner?.photo;
 
   return (
-    <div className="min-h-screen bg-base-100 p-6">
-      {/* Top Header with Animation */}
+    <div className="min-h-screen bg-base-100 p-4 sm:p-6">
+      {/* Channel Header Card */}
       <motion.div
-        className="bg-gradient-to-tr from-base-200 via-base-300 to-secondary/50 shadow-xl rounded-xl mb-8"
+        className="bg-gradient-to-tr from-base-200 via-base-300 to-accent/75 shadow-lg rounded-xl mb-6 md:mb-8 overflow-hidden"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center space-x-4">
-            <img
-              src={
-                channelData?.owner?.photo === "default.webp"
-                  ? "http://localhost:4000/public/img/users/default.webp"
-                  : `http://localhost:4000/public/img/users/${channelData?.owner?.photo}`
-              }
-              alt={channelData?.owner?.fullName}
-              className="w-36 h-36 rounded-full border-4 border-accent object-cover shadow-lg"
-            />
-            <div>
-              <h1 className="text-xl font-bold text-secondary">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+            {/* Profile Image */}
+            <motion.div 
+              whileHover={{ scale: 1.05 }}
+              className="relative"
+            >
+              <img
+                src={profileImage}
+                alt={channelData?.owner?.fullName || "Channel owner"}
+                className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-accent object-cover shadow-lg"
+                loading="lazy"
+              />
+              <div className="absolute bottom-0 right-0 bg-success rounded-full w-5 h-5 border-2 border-base-100"></div>
+            </motion.div>
+            
+            {/* Channel Info */}
+            <div className="flex-1 text-center sm:text-left">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-secondary">
                 {channelData?.name || "NA"}
               </h1>
-              <p className="text-base-content">
-                {channelData?.description || "NA"}
+              <p className="text-sm sm:text-base text-base-content/90 mt-1 line-clamp-2">
+                {channelData?.description || "No description available"}
               </p>
-              <p className="text-sm text-base-content/75">
-                {channelData?.statistics?.totalSubscribers || "0"} subscribers
-              </p>
+              <div className="flex items-center justify-center sm:justify-start gap-3 mt-2">
+                <p className="text-xs sm:text-sm flex items-center gap-1">
+                  <Users className="w-3 h-3 sm:w-4 sm:h-4 text-info" />
+                  <span className="font-medium">{channelData?.statistics?.totalSubscribers?.toLocaleString() || "0"}</span> subscribers
+                </p>
+                <p className="text-xs sm:text-sm flex items-center gap-1">
+                  <Video className="w-3 h-3 sm:w-4 sm:h-4 text-secondary" />
+                  <span className="font-medium">{channelData?.statistics?.totalVideos?.toLocaleString() || "0"}</span> videos
+                </p>
+              </div>
+            </div>
+            
+            {/* Upload Button */}
+            <div className="w-full sm:w-auto flex justify-center sm:justify-end">
+              <motion.button
+                onClick={toggleModal}
+                className="btn btn-primary flex items-center gap-2 px-4 py-2 rounded-lg"
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Video className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-sm sm:text-base">Upload Video</span>
+              </motion.button>
             </div>
           </div>
         </div>
-        <div className="w-full justify-end  flex">
-          {/* Add Video Button */}
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className=" btn flex items-center gap-2 px-4 py-2 bg-gradient-to-tr from-base-300  to-secondary text-base-content rounded-lg hover:bg-primary-dark"
-          >
-            <Video className="w-5 h-5" />
-            Upload Video
-          </button>
-
-          {/* Video Upload Modal */}
-          <AddVideoButton
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-          />
-        </div>
       </motion.div>
 
-      {/* Main Content */}
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-accent">Channel Statistics</h2>
-
-        {/* Stats Grid with Animation */}
-        <motion.div
-          className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-        >
-          {stats.map((stat) => (
-            <Card key={stat.title}>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-secondary">
-                  {stat.title}
-                </span>
-                {stat.icon}
-              </div>
-              <div className="space-y-2">
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-sm text-accent">
-                  <span className="text-green-500 font-medium">
-                    {stat.change}
+      <div className="space-y-6 md:space-y-8">
+        {/* Statistics Section */}
+        <section>
+          <h2 className="text-xl md:text-2xl font-bold text-accent mb-4 md:mb-6 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />
+            Channel Statistics
+          </h2>
+          
+          <motion.div 
+            className="grid gap-4 grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
+            variants={animationVariants.container}
+            initial="hidden"
+            animate="visible"
+          >
+            {stats.map((stat) => (
+              <Card key={stat.title}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs sm:text-sm font-medium text-base-content/80">
+                    {stat.title}
                   </span>
-                  <span className="ml-1 text-base-content/80">from last month</span>
-                </p>
-              </div>
-            </Card>
-          ))}
-        </motion.div>
-       
+                  {stat.icon}
+                </div>
+                <div className="space-y-1">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold">
+                    {stat.value}
+                  </div>
+                  <p className="text-xs sm:text-sm flex items-center">
+                    <span className={`${stat.color} font-medium`}>
+                      {stat.change}
+                    </span>
+                    <span className="ml-1 text-base-content/70">from last month</span>
+                  </p>
+                </div>
+              </Card>
+            ))}
+          </motion.div>
+        </section>
 
-        <div>
+        {/* Videos Section */}
+        <section>
           <MyVideo myVideos={channelData?.videos || []} />
-        </div>
+        </section>
       </div>
+
+      {/* Upload Video Modal */}
+      <AddVideoButton
+        isOpen={isModalOpen}
+        onClose={toggleModal}
+      />
     </div>
   );
 };
 
-export default DashboardLayout;
+export default React.memo(DashboardHome);

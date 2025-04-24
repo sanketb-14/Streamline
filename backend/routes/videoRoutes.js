@@ -20,9 +20,10 @@ router.post(
   protect,
   videoController.ensureUserHasChannel ,
   videoController.validateTags ,
-  videoController.uploadVideo,
+  videoController.uploadVideoFile,
   videoController.processVideo,
-  videoController.createVideo
+  videoController.createVideo ,
+  videoController.cleanupOnError
 );
 
 router.get('/:videoId', videoController.getVideo);

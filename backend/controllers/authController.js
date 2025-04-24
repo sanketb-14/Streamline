@@ -6,40 +6,58 @@ import { catchAsync } from "../utils/catchAsync.js";
 import Channel from "../models/Channel.js";
 import { AppError } from "../utils/appError.js";
 import crypto from "crypto";
+import path from "path";
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+import axios from 'axios';
+import cloudinary from "../config/cloudinaryConfig.js";
 
 // google Sign-In
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 export const googleSignIn = catchAsync(async (req, res) => {
-  console.log("Received user data:", req.body);
-
   const { email, name, picture } = req.body;
-
   let user = await User.findOne({ email });
+  let profilePicture = 'default';
 
+  try {
+    // Upload Google profile picture to Cloudinary
+    if (picture) {
+      const result = await cloudinary.uploader.upload(picture, {
+        folder: 'StreamLine/images',
+        transformation: [{ width: 250, height: 250, crop: 'fill' }]
+      });
+      profilePicture = result.secure_url;
+    }
+  } catch (err) {
+    console.error('Image upload failed:', err.message);
+    profilePicture = 'default';
+  }
+  
+  // User creation/update logic
   if (!user) {
     const randomPassword = crypto.randomBytes(20).toString("hex");
-    console.log(randomPassword , "randomPassword");
-    
     user = await User.create({
       fullName: name,
       email,
-      photo: picture,
+      photo: profilePicture,
       password: randomPassword,
       passwordConfirm: randomPassword,
-      provider: ["google"], // Add this field to your User schema
-      isEmailVerified: true, // Since Google has verified the email
+      provider: ["google"],
+      isEmailVerified: true,
     });
-  } else if (!user.provider.includes("google")) {
-    // 3. If user exists but never used Google auth
-    user.provider = [...(user.provider || []), "google"];
-    user.photo = picture;
+  } else {
+    if (!user.provider.includes("google")) {
+      user.provider = [...(user.provider || []), "google"];
+    }
+    if (profilePicture !== 'default') {
+      user.photo = profilePicture;
+    }
     await user.save({ validateBeforeSave: false });
   }
 
-  // 4. Create and send token
   createSendToken(user, 200, res);
 });
-
 // Existing functions
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -72,20 +90,47 @@ const createSendToken = (user, statusCode, res) => {
   });
 };
 
-export const register = catchAsync(async (req, res) => {
+export const register = catchAsync(async (req, res, next) => {
   const { fullName, email, password, passwordConfirm } = req.body;
 
-  console.log(req.body);
-  
+  // Check if required fields are present
+  if (!fullName || !email || !password || !passwordConfirm) {
+    return next(new AppError('Please provide all required fields', 400));
+  }
 
-  const newUser = await User.create({
-    fullName,
-    email,
-    password,
-    passwordConfirm,
-  });
+  // Check if user already exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return next(new AppError('Email already in use. Please use a different email or login instead.', 409));
+  }
 
-  createSendToken(newUser, 201, res);
+  try {
+    // Create new user
+    const newUser = await User.create({
+      fullName,
+      email,
+      password,
+      passwordConfirm,
+    });
+
+    // Send token to client
+    createSendToken(newUser, 201, res);
+  } catch (err) {
+    // Handle mongoose validation errors
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(val => val.message);
+      return next(new AppError(`Validation error: ${messages.join('. ')}`, 400));
+    }
+    
+    // Handle duplicate key errors
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyValue)[0];
+      return next(new AppError(`${field.charAt(0).toUpperCase() + field.slice(1)} already in use`, 409));
+    }
+
+    // Pass any other errors to the global error handler
+    return next(err);
+  }
 });
 
 export const login = catchAsync(async (req, res, next) => {
@@ -108,49 +153,32 @@ export const login = catchAsync(async (req, res, next) => {
 
 export const protect = catchAsync(async (req, res, next) => {
   let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
+
+  
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     token = req.headers.authorization.split(" ")[1];
   }
 
   if (!token) {
-    return next(
-      new AppError("You are not logged in! Please log in to get access.", 401)
-    );
+    return next(new AppError("You are not logged in! Please log in to get access.", 401));
   }
 
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-
   const currentUser = await User.findById(decoded.id);
+  
   if (!currentUser) {
-    return next(
-      new AppError(
-        "The user belonging to this token does no longer exist.",
-        401
-      )
-    );
+    return next(new AppError("The user belonging to this token does no longer exist.", 401));
   }
 
-  if (req.originalUrl !== "/api/v1/channel" || req.method !== "POST") {
-    
-    
-    const userChannel = await Channel.findOne({ owner: currentUser._id });
-  
-    
-    // if (!userChannel) {
-    //   return next(
-    //     new AppError(
-    //       "No channel found for this user. Please create a channel first.",
-    //       404
-    //     )
-    //   );
-    // }
-    req.channel = userChannel || [];
-  }
+  // Always attach user to request
   req.user = currentUser;
- 
+
+  // Find channel if it exists (but don't require it)
+  const userChannel = await Channel.findOne({ owner: currentUser._id });
+  req.channel = userChannel || null;
+
+  
+  
 
   next();
 });

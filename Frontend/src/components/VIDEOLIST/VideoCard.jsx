@@ -4,6 +4,9 @@ import { Eye, ThumbsUp, Clock } from 'lucide-react'
 
 export default function VideoCard({ video, index }) {
 
+  console.log(video , "v");
+  
+
   
 
   
@@ -23,7 +26,7 @@ export default function VideoCard({ video, index }) {
           transition={{ type: "tween", duration: 0.2 }}
         >
           <img
-            src={`http://localhost:4000/public/${video.thumbnail}`}
+            src={video.thumbnail}
             alt={video.title}
             className="w-full h-full object-cover rounded-xl"
           />
@@ -36,7 +39,7 @@ export default function VideoCard({ video, index }) {
           <div className="flex gap-3">
             <motion.img
               whileHover={{ scale: 1.1 }}
-              src={`http://localhost:4000/public/img/users/${video.channel.owner.photo}`}
+              src={video.channel.owner.photo}
               alt={video.channel.owner.name}
               className="w-10 h-10 rounded-full"
             />

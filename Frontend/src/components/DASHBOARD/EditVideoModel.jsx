@@ -1,10 +1,13 @@
 "use client";
 
 import { motion } from 'framer-motion';
-import { X, Save, Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { X, Save, Loader2, Tag, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 
+/**
+ * List of valid tags that users can select for their videos
+ */
 const VALID_TAGS = [
   "Technology",
   "Education",
@@ -18,13 +21,25 @@ const VALID_TAGS = [
   "Science",
 ];
 
+/**
+ * EditVideoModal - A modal component for editing video metadata
+ * 
+ * @param {Object} props - Component props
+ * @param {Object} props.video - The video object containing title, description, and tags
+ * @param {Function} props.onClose - Function to call when closing the modal
+ * @param {Function} props.onSave - Function to call when saving changes
+ * @param {boolean} props.isUpdating - Whether the save operation is in progress
+ * @returns {JSX.Element} The modal component
+ */
 const EditVideoModal = ({ video, onClose, onSave, isUpdating }) => {
+  // Set default values if video is undefined
   const safeVideo = video || { 
     title: '', 
     description: '', 
     tags: [] 
   };
 
+  // Form state management
   const [formData, setFormData] = useState({
     title: safeVideo.title,
     description: safeVideo.description,
@@ -34,32 +49,59 @@ const EditVideoModal = ({ video, onClose, onSave, isUpdating }) => {
   const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState({});
 
+  // Reset errors when form data changes
+  useEffect(() => {
+    const newErrors = {};
+    
+    if (formData.title && formData.title.length < 10) {
+      newErrors.title = "Title must be at least 10 characters long";
+    }
+    
+    setErrors(prev => ({
+      ...prev,
+      ...newErrors
+    }));
+  }, [formData.title]);
+
+  /**
+   * Handles adding a tag to the video
+   * @param {Event} e - The event object
+   */
   const handleTagAdd = (e) => {
     e.preventDefault();
     const tag = tagInput.trim();
+
+    if (!tag) return;
 
     if (formData.tags.length >= 5) {
       setErrors({ ...errors, tags: "You can only add up to 5 tags" });
       return;
     }
 
-    if (tag && !formData.tags.includes(tag)) {
-      if (VALID_TAGS.includes(tag)) {
-        setFormData(prev => ({
-          ...prev,
-          tags: [...prev.tags, tag]
-        }));
-        setTagInput("");
-        setErrors({ ...errors, tags: undefined });
-      } else {
-        setErrors({ 
-          ...errors, 
-          tags: `Please select from valid tags: ${VALID_TAGS.join(", ")}` 
-        });
-      }
+    if (formData.tags.includes(tag)) {
+      setErrors({ ...errors, tags: "This tag already exists" });
+      return;
+    }
+
+    if (VALID_TAGS.includes(tag)) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, tag]
+      }));
+      setTagInput("");
+      setErrors({ ...errors, tags: undefined });
+    } else {
+      setErrors({ 
+        ...errors, 
+        tags: `Please select from valid tags` 
+      });
     }
   };
 
+  /**
+   * Removes a tag from the video
+   * @param {string} tagToRemove - The tag to remove
+   */
   const removeTag = (tagToRemove) => {
     setFormData(prev => ({
       ...prev,
@@ -67,10 +109,14 @@ const EditVideoModal = ({ video, onClose, onSave, isUpdating }) => {
     }));
   };
 
+  /**
+   * Handles form submission
+   * @param {Event} e - The event object
+   */
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Validate title length (same as upload modal)
+    // Validate title length
     if (formData.title.length < 10) {
       setErrors({ ...errors, title: "Title must be at least 10 characters long" });
       return;
@@ -86,126 +132,192 @@ const EditVideoModal = ({ video, onClose, onSave, isUpdating }) => {
     onSave(submissionData);
   };
 
+  // Animation variants for fade-in effect
+  const backdropVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.2 } }
+  };
+
+  const modalVariants = {
+    hidden: { y: -50, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.3, type: "spring", stiffness: 300, damping: 25 } }
+  };
+
   return (
     <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      initial="hidden"
+      animate="visible"
+      variants={backdropVariants}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+      onClick={(e) => {
+        // Close modal when clicking outside
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <motion.div
-        initial={{ y: -50 }}
-        animate={{ y: 0 }}
-        className="bg-base-100 rounded-lg p-6 w-full max-w-md"
+        variants={modalVariants}
+        className="bg-base-100 shadow-xl rounded-lg w-full max-w-md"
+        onClick={e => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold">Edit Video</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+        {/* Modal Header */}
+        <div className="px-6 py-4 border-b border-base-300 flex justify-between items-center">
+          <h3 className="text-lg font-bold text-base-content">Edit Video Details</h3>
+          <button 
+            onClick={onClose} 
+            className="btn btn-ghost btn-sm btn-circle text-base-content/70 hover:text-base-content"
+            aria-label="Close"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Title*</label>
+        {/* Modal Body */}
+        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-5">
+          {/* Title Field */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">Title<span className="text-error">*</span></span>
+            </label>
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={(e) => {
                 setFormData(prev => ({ ...prev, title: e.target.value }));
-                if (e.target.value.length >= 10) {
-                  setErrors({ ...errors, title: undefined });
-                }
               }}
-              className={`w-full px-3 py-2 border rounded-md ${
-                errors.title ? "border-red-500" : "border-gray-300"
+              className={`input input-bordered w-full ${
+                errors.title ? "input-error" : ""
               }`}
+              placeholder="Enter video title (min 10 characters)"
               required
             />
             {errors.title && (
-              <p className="text-red-500 text-xs mt-1">{errors.title}</p>
+              <div className="label">
+                <span className="label-text-alt text-error flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.title}
+                </span>
+              </div>
             )}
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
+          {/* Description Field */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">Description</span>
+            </label>
             <textarea
               name="description"
               value={formData.description}
               onChange={(e) => 
                 setFormData(prev => ({ ...prev, description: e.target.value }))
               }
-              className="w-full px-3 py-2 border rounded-md"
+              className="textarea textarea-bordered w-full"
+              placeholder="Add a description for your video"
               rows="3"
             />
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-1">Tags (up to 5)</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {formData.tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="ml-1 text-blue-600 hover:text-blue-800"
+          {/* Tags Field */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">Tags</span>
+              <span className="label-text-alt">{formData.tags.length}/5</span>
+            </label>
+            
+            {/* Tag display */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {formData.tags.length > 0 ? (
+                formData.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="badge badge-primary badge-outline gap-1 pl-2"
                   >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="hover:bg-primary/20 rounded-full p-1"
+                      aria-label={`Remove ${tag} tag`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs text-base-content/60 italic">No tags added yet</span>
+              )}
             </div>
+            
+            {/* Tag selector */}
             <div className="flex gap-2">
               <select
                 value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                className={`flex-1 px-3 py-2 border rounded-md ${
-                  errors.tags ? "border-red-500" : "border-gray-300"
+                onChange={(e) => {
+                  setTagInput(e.target.value);
+                  setErrors({ ...errors, tags: undefined });
+                }}
+                className={`select select-bordered flex-1 ${
+                  errors.tags ? "select-error" : ""
                 }`}
               >
                 <option value="">Select a tag</option>
-                {VALID_TAGS.map(tag => (
+                {VALID_TAGS.filter(tag => !formData.tags.includes(tag)).map(tag => (
                   <option key={tag} value={tag}>{tag}</option>
                 ))}
               </select>
               <button
                 type="button"
                 onClick={handleTagAdd}
-                className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                className="btn btn-primary"
+                disabled={!tagInput || formData.tags.length >= 5}
+                aria-label="Add tag"
               >
+                <Tag className="w-4 h-4" />
                 Add
               </button>
             </div>
+            
             {errors.tags && (
-              <p className="text-red-500 text-xs mt-1">{errors.tags}</p>
+              <div className="label">
+                <span className="label-text-alt text-error flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.tags}
+                </span>
+              </div>
             )}
-            <p className="text-xs text-gray-500 mt-1">
-              {formData.tags.length}/5 tags used. Valid tags: {VALID_TAGS.join(', ')}
-            </p>
-          </div>
-          
-          <div className="flex justify-end space-x-2 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border rounded-md"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-primary text-white rounded-md flex items-center"
-              disabled={isUpdating || !!errors.title || !!errors.tags}
-            >
-              {isUpdating ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}
-              Save Changes
-            </button>
           </div>
         </form>
+        
+        {/* Modal Footer */}
+        <div className="px-6 py-4 border-t border-base-300 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-ghost"
+            disabled={isUpdating}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="btn btn-primary"
+            disabled={isUpdating || formData.title.length < 10}
+          >
+            {isUpdating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Save Changes
+              </>
+            )}
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );

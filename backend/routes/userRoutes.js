@@ -15,7 +15,6 @@ import {
   deleteMe,
   getAllUser,
   uploadUserPhoto,
-  resizeUserPhot,
 } from "../controllers/userController.js";
 
 // Authentication Routes
@@ -29,7 +28,7 @@ router.post('/google', googleSignIn)
 router.use(protect);
 router.get("/logout", logout);
 router.get("/me", getMe);
-router.patch("/updateMe", uploadUserPhoto, resizeUserPhot, updateMe);
+router.patch("/updateMe", uploadUserPhoto, updateMe);
 router.delete("/deleteMe", deleteMe);
 
 // Admin Routes
