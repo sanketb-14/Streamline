@@ -9,18 +9,20 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load config
+// Explicitly load from config.env
 dotenv.config({ path: path.join(__dirname, '../config.env') });
 
-// Configure Cloudinary with longer timeout
+// Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  timeout: 60000 // 60 seconds timeout (up from default 30s)
-});
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    timeout: 60000 // 60 seconds timeout (up from default 30s)
+  });
 
-// Video storage with chunked upload support
+
+
+// Create storages for different file types
 const videoStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
@@ -50,6 +52,25 @@ const videoStorage = new CloudinaryStorage({
   }
 });
 
+const imageStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'StreamLine/images',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    transformation: [{ width: 250, height: 250, crop: 'fill' }]
+  }
+});
+
+const thumbnailStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'StreamLine/thumbnails',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 320, height: 180, crop: 'fill' }]
+  }
+});
+
+// Create multer upload instances
 // Create multer instance with proper limits
 export const uploadVideo = multer({ 
   storage: videoStorage,
@@ -65,9 +86,8 @@ export const uploadVideo = multer({
       cb(new Error('Only video files are allowed!'), false);
     }
   }
-});
+}); 
 
-// Other storage configurations remain the same...
 export const uploadImage = multer({ 
   storage: imageStorage,
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
