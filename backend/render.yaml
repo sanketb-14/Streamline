@@ -1,7 +1,11 @@
 services:
   - type: web
-    name: your-frontend
+    name: streamline-backend
     env: node
-    buildCommand: npm install && npm run build
+    buildCommand: npm run build
     startCommand: npm start
-    staticPublishPath: "./dist"
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: NODE_ENV
+        value: production
