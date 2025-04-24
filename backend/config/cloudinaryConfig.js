@@ -23,35 +23,37 @@ cloudinary.config({
 
 // Create storages for different file types
 const videoStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: async (req, file) => {
-        const timestamp = Date.now();
-        const originalName = file.originalname.replace(/\.[^/.]+$/, "");
-      return {
-        folder: 'StreamLine/videos',
-        resource_type: 'video',
-        allowed_formats: ['mp4', 'mov', 'avi', 'webm'],
-        transformation: [{ quality: 'auto' }],
-        overwrite: false, 
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    const timestamp = Date.now();
+    // Better filename sanitization - remove all special characters and spaces
+    const sanitizedName = file.originalname
+      .replace(/\.[^/.]+$/, "")  // Remove extension
+      .replace(/[^a-zA-Z0-9]/g, "_")  // Replace special chars with underscore
+      .substring(0, 40);  // Limit length
+      
+    return {
+      folder: 'StreamLine/videos',
+      resource_type: 'video',
+      allowed_formats: ['mp4', 'mov', 'avi', 'webm'],
+      transformation: [{ quality: 'auto' }],
+      overwrite: false,
       invalidate: true,
-        public_id: `video-${timestamp}-${originalName}`,
-        chunk_size: 6000000,
-        eager: [
-            { 
-              format: "jpg", 
-              transformation: [
-                { width: 320, height: 180, crop: "fill" },
-                { quality: "auto" },
-                { start_offset: "10%" }
-              ]
-            }
-          ],
-          eager_async: true
-        
-      };
-    }
-  });
-
+      public_id: `video-${timestamp}-${sanitizedName}`,
+      eager: [
+        {
+          format: "jpg",
+          transformation: [
+            { width: 320, height: 180, crop: "fill" },
+            { quality: "auto" },
+            { start_offset: "10%" }
+          ]
+        }
+      ],
+      eager_async: true
+    };
+  }
+});
 const imageStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
