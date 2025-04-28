@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Edit2, Check, ArrowRight, Save, AlertCircle, Loader2, PenLine, Info } from 'lucide-react';
 import { useChannel } from '../../../hooks/useChannel';
-import { Card } from './dashboardHome';
+import { Card } from '../Card';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 
