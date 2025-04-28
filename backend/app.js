@@ -39,6 +39,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], //  Specify allowed methods
     allowedHeaders: ["Content-Type", "Authorization"], //  Specify allowed headers
+    exposedHeaders: ["set-cookie"]
   })
 );
 
