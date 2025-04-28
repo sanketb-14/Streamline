@@ -18,19 +18,34 @@ import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { useSubscribers } from "../../hooks/useSubscribers";
 
+/**
+ * VideoPlayer Component
+ * 
+ * A comprehensive video player with playback controls, subscription management,
+ * and interactive features like likes/dislikes. Includes:
+ * - Play/pause, volume, and playback speed controls
+ * - Fullscreen mode
+ * - Progress bar with seek functionality
+ * - Channel subscription management
+ * - Like/dislike functionality
+ * - Keyboard shortcuts for playback control
+ */
 const VideoPlayer = ({
-  video,
-  likeVideo,
-  dislikeVideo,
-  isLiking,
-  isDisliking,
-  isLiked,
-  isDisliked,
-  likeError,
-  dislikeError,
+  video,                // Video data object
+  likeVideo,            // Function to like video
+  dislikeVideo,         // Function to dislike video
+  isLiking,            // Loading state for like action
+  isDisliking,         // Loading state for dislike action
+  isLiked,             // Boolean if video is liked
+  isDisliked,          // Boolean if video is disliked
+  likeError,           // Error from like action
+  dislikeError,        // Error from dislike action
 }) => {
+  // Refs for video element and player container
   const videoRef = useRef(null);
   const playerRef = useRef(null);
+
+  // State variables for player controls
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -41,8 +56,10 @@ const VideoPlayer = ({
   const [showControls, setShowControls] = useState(true);
   const [isBuffering, setIsBuffering] = useState(true);
   const hideControlsTimeout = useRef(null);
- console.log(video);
- 
+
+
+  
+  // Subscription management hooks
   const {
     isSubscribed,
     subscribeToChannel,
@@ -53,6 +70,10 @@ const VideoPlayer = ({
     isUnsubscribing
   } = useSubscribers(video.channel.id);
 
+  /**
+   * Handles channel subscription/unsubscription
+   * Toggles between subscribed and unsubscribed states
+   */
   const handleSubscribeClick = () => {
     try {
       if (isSubscribed) {
@@ -66,6 +87,7 @@ const VideoPlayer = ({
     }
   };
 
+  // Keyboard shortcuts for video control
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (!videoRef.current) return;
@@ -79,6 +101,7 @@ const VideoPlayer = ({
         return;
       }
 
+      // Handle various keyboard shortcuts
       switch (e.key.toLowerCase()) {
         case " ":
         case "k":
@@ -116,6 +139,7 @@ const VideoPlayer = ({
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [volume]);
 
+  // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -126,6 +150,9 @@ const VideoPlayer = ({
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
+  /**
+   * Shows controls on mouse movement and hides them after timeout
+   */
   const handleMouseMove = () => {
     setShowControls(true);
     if (hideControlsTimeout.current) {
@@ -138,6 +165,9 @@ const VideoPlayer = ({
     }
   };
 
+  /**
+   * Toggles between play and pause states
+   */
   const handlePlayPause = () => {
     if (isPlaying) {
       videoRef.current.pause();
@@ -149,21 +179,33 @@ const VideoPlayer = ({
     setIsPlaying(!isPlaying);
   };
 
+  /**
+   * Updates current time as video plays
+   */
   const handleTimeUpdate = () => {
     setCurrentTime(videoRef.current.currentTime);
   };
 
+  /**
+   * Initializes video duration when metadata is loaded
+   */
   const handleLoadedMetadata = () => {
     setDuration(videoRef.current.duration);
     setIsBuffering(false);
   };
 
+  /**
+   * Handles seeking to specific time in video
+   */
   const handleSeek = (e) => {
     const seekTime = (e.target.value / 100) * duration;
     videoRef.current.currentTime = seekTime;
     setCurrentTime(seekTime);
   };
 
+  /**
+   * Adjusts volume level
+   */
   const handleVolumeChange = (e) => {
     const newVolume = parseFloat(e.target.value);
     videoRef.current.volume = newVolume;
@@ -171,6 +213,9 @@ const VideoPlayer = ({
     setIsMuted(newVolume === 0);
   };
 
+  /**
+   * Toggles mute state
+   */
   const handleMuteToggle = () => {
     const newMutedState = !isMuted;
     videoRef.current.muted = newMutedState;
@@ -180,11 +225,17 @@ const VideoPlayer = ({
     }
   };
 
+  /**
+   * Changes playback speed
+   */
   const handlePlaybackSpeedChange = (speed) => {
     videoRef.current.playbackRate = speed;
     setPlaybackSpeed(speed);
   };
 
+  /**
+   * Toggles fullscreen mode
+   */
   const handleFullscreenToggle = () => {
     if (!isFullscreen) {
       playerRef.current.requestFullscreen().catch((error) => {
@@ -197,6 +248,9 @@ const VideoPlayer = ({
     }
   };
 
+  /**
+   * Formats time in HH:MM:SS or MM:SS format
+   */
   const formatTime = (time) => {
     const hours = Math.floor(time / 3600);
     const minutes = Math.floor((time % 3600) / 60);
@@ -210,18 +264,21 @@ const VideoPlayer = ({
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  // Show error toast if like/dislike fails
   if (likeError || dislikeError) {
     toast.error(likeError || dislikeError);
   }
 
   return (
     <div className="w-full mx-auto">
+      {/* Video Player Container */}
       <div
         ref={playerRef}
         className="relative w-full aspect-video bg-base-100 rounded-lg overflow-hidden mb-4 group"
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setShowControls(false)}
       >
+        {/* Video Element */}
         <video
           ref={videoRef}
           className="w-full h-full cursor-pointer"
@@ -234,6 +291,7 @@ const VideoPlayer = ({
           playsInline
         />
 
+        {/* Play Button Overlay (when paused) */}
         {!isPlaying && showControls && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
             <motion.button
@@ -247,17 +305,20 @@ const VideoPlayer = ({
           </div>
         )}
 
+        {/* Buffering Indicator */}
         {isBuffering && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
             <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
+        {/* Video Controls */}
         <div
           className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${
             showControls ? "opacity-100" : "opacity-0"
           }`}
         >
+          {/* Progress Bar */}
           <div className="group/progress relative">
             <input
               type="range"
@@ -270,13 +331,16 @@ const VideoPlayer = ({
             </div>
           </div>
 
+          {/* Time Display */}
           <div className="flex justify-between text-gray-300 text-sm mt-1">
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(duration)}</span>
           </div>
 
+          {/* Control Buttons */}
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-2">
+              {/* Play/Pause Button */}
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handlePlayPause}
@@ -285,6 +349,7 @@ const VideoPlayer = ({
                 {isPlaying ? <Pause size={20} /> : <Play size={20} />}
               </motion.button>
 
+              {/* Volume Control */}
               <div className="group/volume relative flex items-center">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -311,6 +376,7 @@ const VideoPlayer = ({
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Playback Speed Control */}
               <div className="relative group/speed">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -334,6 +400,7 @@ const VideoPlayer = ({
                 </div>
               </div>
 
+              {/* Fullscreen Button */}
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handleFullscreenToggle}
@@ -346,11 +413,12 @@ const VideoPlayer = ({
         </div>
       </div>
 
-      {/* Rest of the component remains the same */}
+      {/* Video Metadata Section */}
       <div className="space-y-4">
         <h1 className="text-xl font-bold text-base-content/80">{video.title}</h1>
 
         <div className="flex flex-wrap items-center justify-between gap-4">
+          {/* Channel Info Section */}
           <div className="flex items-center gap-4">
             <Link to={`/channel/${video.channel.id}`}>
               <motion.div className="relative rounded-full overflow-hidden">
@@ -371,6 +439,7 @@ const VideoPlayer = ({
               </p>
             </div>
 
+            {/* Subscribe Button */}
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleSubscribeClick}
@@ -394,7 +463,9 @@ const VideoPlayer = ({
             </motion.button>
           </div>
 
+          {/* Video Actions Section */}
           <div className="flex items-center gap-2">
+            {/* Like/Dislike Buttons */}
             <div className="bg-base-200/75 rounded-full flex items-center">
               <motion.button
                 whileTap={{ scale: 0.95 }}
@@ -435,6 +506,7 @@ const VideoPlayer = ({
               </motion.button>
             </div>
 
+            {/* Share Button */}
             <motion.button
               whileTap={{ scale: 0.95 }}
               className="px-4 py-2 bg-base-200/75 rounded-full flex items-center gap-2 text-base-content hover:bg-base-200"
@@ -442,6 +514,7 @@ const VideoPlayer = ({
               <Share size={20} /> Share
             </motion.button>
 
+            {/* Download Button */}
             <motion.button
               whileTap={{ scale: 0.95 }}
               className="px-4 py-2 bg-base-200/75 rounded-full flex items-center gap-2 text-base-content hover:bg-base-200"
@@ -449,6 +522,7 @@ const VideoPlayer = ({
               <Download size={20} /> Download
             </motion.button>
 
+            {/* More Options Button */}
             <motion.button
               whileTap={{ scale: 0.95 }}
               className="p-2 bg-base-200/80 rounded-full text-base-content hover:bg-base-200"
@@ -457,8 +531,6 @@ const VideoPlayer = ({
             </motion.button>
           </div>
         </div>
-
-       
       </div>
     </div>
   );

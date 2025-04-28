@@ -79,7 +79,7 @@ export const useVideo = (videoId) => {
     enabled: !!videoId,
   });
 
-  // Get video comments query with pagination
+
 // Get video comments query with pagination
 const getCommentsQuery = useQuery({
   queryKey: ["videoComments", videoId],
