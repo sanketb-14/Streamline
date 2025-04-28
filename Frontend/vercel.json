@@ -1,23 +1,5 @@
 {
-    "headers": [
-      {
-        "source": "/api/v1/(.*)",
-        "headers": [
-          {
-            "key": "Access-Control-Allow-Origin",
-            "value": "https://streamline02.vercel.app"
-          },
-          {
-            "key": "Access-Control-Allow-Credentials",
-            "value": "true"
-          }
-        ]
-      }
-    ],
     "rewrites": [
-      {
-        "source": "/api/v1/:path*",
-        "destination": "https://streamline-backend-09ip.onrender.com/api/v1/:path*"
-      }
+      { "source": "/(.*)", "destination": "/index.html" }
     ]
   }
