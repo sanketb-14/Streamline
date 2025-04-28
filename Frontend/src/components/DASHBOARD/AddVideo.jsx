@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Loader2, Video, Tag, FileText } from "lucide-react";
+import { X, Upload, Loader2, Video, Tag, FileText, AlertTriangle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "../../Services/axios";
 import toast from "react-hot-toast";
@@ -123,6 +123,10 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
         newErrors.tags = "You can only add up to 5 tags";
       }
 
+      if (errorMessage.includes("file size") || errorMessage.includes("duration")) {
+        newErrors.video = "Video exceeds size or duration limits";
+      }
+
       setErrors(newErrors);
       toast.error("Please fix the validation errors");
     },
@@ -132,8 +136,16 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
     const file = e.target.files[0];
     if (file) {
       if (file.type.startsWith("video/")) {
+        // Check file size (50MB = 52428800 bytes)
+        if (file.size > 52428800) {
+          toast.error("Video file size exceeds 50MB limit");
+          setErrors((prev) => ({ ...prev, video: "Video must be less than 50MB" }));
+          return;
+        }
+        
         setFormData((prev) => ({ ...prev, video: file }));
         setVideoPreview(URL.createObjectURL(file));
+        setErrors((prev) => ({ ...prev, video: undefined }));
       } else {
         toast.error("Please select a valid video file");
       }
@@ -253,6 +265,16 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
               </div>
             </div>
 
+            {/* Warning Notice */}
+            <div className="px-6 py-3 bg-warning/75 border-b border-warning/20">
+              <div className="flex items-center gap-2 text-warning-content">
+                <AlertTriangle className="w-5 h-5  text-warning" />
+                <p className="text-sm  font-medium">
+                  Please note: This is a practice project. Upload videos less than 25MB and 10 minutes in duration. Maximum 2-3 videos per user.
+                </p>
+              </div>
+            </div>
+
             {/* Upload Progress */}
             {uploadVideoMutation.isPending && (
               <div className="px-6 py-3 bg-primary/5">
@@ -289,7 +311,7 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
                         Click to upload video
                       </span>
                       <span className="text-xs text-base-content/50">
-                        MP4, WebM, or MOV (max 100MB)
+                        MP4, WebM, or MOV (max 50MB, 10 minutes)
                       </span>
                       <input
                         type="file"
@@ -320,6 +342,11 @@ const VideoUploadModal = ({ isOpen, onClose }) => {
                     </div>
                   )}
                 </div>
+                {errors.video && (
+                  <label className="label">
+                    <span className="label-text-alt text-error">{errors.video}</span>
+                  </label>
+                )}
               </div>
 
               {/* Title */}

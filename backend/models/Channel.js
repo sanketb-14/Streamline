@@ -35,7 +35,7 @@ const ChannelSchema = new mongoose.Schema({
 
 // Indexes for better query performance
 ChannelSchema.index({ owner: 1 }); // Index on owner field
-ChannelSchema.index({ subscribers: 1 }); // Index on subscribers field
+// ChannelSchema.index({ subscribers: 1 }); // Index on subscribers field
 
 const Channel = mongoose.model("Channel", ChannelSchema);
 

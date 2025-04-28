@@ -128,7 +128,7 @@ export const processVideo = catchAsync(async (req, res, next) => {
     console.log('Eager transformation requested for thumbnail generation');
   } catch (error) {
     console.error('Error requesting eager transformation:', error);
-    // Continue anyway, as we still have the default thumbnail URL
+    
   }
 
   // Attach to request for next middleware
@@ -438,8 +438,8 @@ export const videoSuggestions = catchAsync(async (req, res, next) => {
   // Escape any special regex characters in the search term
   const escapedSearch = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
 
-  // Log the search term for debugging
-  console.log("Search term:", search);
+
+ 
 
   const videos = await Video.aggregate([
     {
@@ -545,7 +545,7 @@ export const getVideoStats = catchAsync(async (req, res, next) => {
 
   const trendingTags = await Video.aggregate([
     {
-      $match: matchStage, // Apply same channel filter to tags if needed
+      $match: matchStage, 
     },
     {
       $unwind: "$tags",
@@ -622,7 +622,7 @@ export const cleanupOnError = catchAsync(async (req, res, next) => {
       console.error('Cleanup error:', err);
     }
   }
-  next(); // Continue to error handler
+  next(); 
 });
 
 export const uploadVideoFile = (req, res, next) => {

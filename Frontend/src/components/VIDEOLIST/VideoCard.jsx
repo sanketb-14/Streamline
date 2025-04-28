@@ -4,7 +4,7 @@ import { Eye, ThumbsUp, Clock } from 'lucide-react'
 
 export default function VideoCard({ video, index }) {
 
-  console.log(video , "v");
+  
   
 
   

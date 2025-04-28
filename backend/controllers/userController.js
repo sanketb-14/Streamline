@@ -45,7 +45,7 @@ export const uploadUserPhoto = uploadImage.single("photo");
 
 
 export const getMe = catchAsync(async (req, res, next) => {
-  // 1. Get user data (assuming req.user.id exists from auth middleware)
+  // 1. Get user data 
 
 
 
@@ -66,9 +66,7 @@ export const getMe = catchAsync(async (req, res, next) => {
       options: { sort: { createdAt: -1 } }, // Sort videos by newest first
     })
     .lean();
-  // Add debug logs
-  // console.log('Channel before populate:', channel?._id);
-  // console.log('Video IDs in channel:', channel?.videos);
+  
 
   // Verify videos exist
   if (channel?.videos?.length > 0) {

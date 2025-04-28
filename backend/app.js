@@ -6,47 +6,66 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import cors from "cors";
 import path from "path";
+import helmet from "helmet"; 
+import compression from "compression"; 
 
 import { errorHandler as globalErrorHandler } from "./controllers/errorController.js";
 import userRouter from "./routes/userRoutes.js";
 import videoRouter from "./routes/videoRoutes.js";
 import channelRouter from "./routes/channelRoutes.js";
 import hpp from "hpp";
+import {AppError} from "./utils/appError.js"; 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 
+
+app.use(helmet());
+
+//  Enable response compression
+app.use(compression());
+
 app.use("/public", express.static(path.join(__dirname, "public")));
+
 
 app.use(
   cors({
-    origin: ["http://localhost:5173",//  frontend URL
-    'https://your-frontend-url.vercel.app', ],// Your live frontend URL
-
+    origin: [
+      "http://localhost:5173",
+      'https://your-production-frontend-url.com', //  real production URL
+    ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], //  Specify allowed methods
+    allowedHeaders: ["Content-Type", "Authorization"], //  Specify allowed headers
   })
 );
 
 // MIDDLEWARE
+// Adjusted rate limiting to more reasonable values
 const limiter = rateLimit({
-  max: 100,
-  windowMs: 60 * 60 * 10000,
-  message: "Too many requests from this IP, please try again in an hour...!",
+  max: 100, // 100 requests per window
+  windowMs: 15 * 60 * 1000, //  15 minutes 
+  message: "Too many requests from this IP, please try again in 15 minutes",
+  standardHeaders: true, //  Return rate limit info in headers
+  legacyHeaders: false, //  Disable deprecated headers
 });
 
-// app.use("/api", limiter);
+//  Apply rate limiting to all API routes
+app.use("/api", limiter);
+
 app.use(express.json());
 app.use(mongoSanitize());
-app.use(morgan("combined"));
+app.use(morgan("dev")); // Using 'dev' format for more concise logs in development
 app.use(
   hpp({
     whitelist: ["createdAt", "views"],
   })
 );
 app.use(express.static(join(__dirname, "public")));
-// Increase payload limit for JSON and URL-encoded bodies
+
+// Body parser configuration remains the same
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
@@ -55,8 +74,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ROUTES
-
+// ROUTES 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/videos", videoRouter);
 app.use("/api/v1/channel", channelRouter);

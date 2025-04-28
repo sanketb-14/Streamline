@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
   },
   photo: {
     type: String,
-    default: "default.webp",
+    default: "https://thumbs.dreamstime.com/b/default-avatar-profile-image-vector-social-media-user-icon-potrait-182347582.jpg",
   },
   provider: {
     type: [String],
@@ -85,7 +85,7 @@ userSchema.methods.correctPassword = async function (candidatePassword, userPass
 
 // Indexes for better query performance
 userSchema.index({ email: 1 }); // Index on email field
-userSchema.index({ role: 1 }); // Index on role field
+// userSchema.index({ role: 1 }); // Index on role field
 
 const User = mongoose.model("User", userSchema);
 
