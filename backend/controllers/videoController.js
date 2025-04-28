@@ -409,8 +409,8 @@ export const getAllVideos = catchAsync(async (req, res, next) => {
       id: video.channel._id,
       name: video.channel.name,
       owner: {
-        name: video.channel.owner.fullName,
-        photo: video.channel.owner.photo,
+        name: video.channel.owner?.fullName,
+        photo: video.channel.owner?.photo,
       },
     },
     timeAgo: getTimeAgo(video.createdAt),
