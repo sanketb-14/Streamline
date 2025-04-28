@@ -74,7 +74,7 @@ const createSendToken = (user, statusCode, res) => {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // critical for cross-site
-    domain: process.env.NODE_ENV === 'production' ? 'https://streamline02.vercel.app' : undefined
+    domain: process.env.NODE_ENV === 'production' ? 'streamline02.vercel.app' : undefined
   };
 
   res.cookie("jwt", token, cookieOptions);
