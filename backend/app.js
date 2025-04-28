@@ -34,7 +34,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      'https://your-production-frontend-url.com', //  real production URL
+      'https://streamine7.vercel.app/', //  real production URL
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], //  Specify allowed methods
