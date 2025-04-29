@@ -4,7 +4,7 @@
 
 Streamline is a full-stack video streaming platform inspired by YouTube, allowing users to upload, view, like, comment on videos, and subscribe to channels.
 
-![Streamline Platform](https://asset.cloudinary.com/dby7q0okj/352f59633d0c4b18880e4c4374f6f3ee)
+
 
 ## Features
 
