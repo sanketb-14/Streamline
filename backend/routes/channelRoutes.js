@@ -17,10 +17,3 @@ router.patch('/:channelId', checkChannelOwnership, updateChannel);
 export default router
 
 
-// {
-//     "_id": "6719214df4b66606a582df6e",
-//     "title": "Medical Health Care Doctor Hospital",
-//     "description": "Explore the essential roles of doctors and hospitals in medical health care. Discover how they work together to provide quality treatment and improve patient outcomes.",
-//     "views": 6,
-//     "createdAt": "2024-10-23T16:16:13.507Z"
-// }
