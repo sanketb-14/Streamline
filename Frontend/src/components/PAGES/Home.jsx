@@ -5,42 +5,54 @@ import VideoFilter from "../VIDEOLIST/VideoFilterBar"
 import { useVideos } from "../../hooks/useVideos"
 
 export default function Home() {
-
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [showColdStartNotice, setShowColdStartNotice] = useState(false)
-  const { isLoading } = useVideos();
-  
-  
+  const [loadingStartTime, setLoadingStartTime] = useState(null)
+  const { isLoading, videos } = useVideos()
 
   useEffect(() => {
-    // Simulate progress during loading
-    const progressInterval = setInterval(() => {
-      setLoadingProgress(prev => {
-        if (prev >= 90) return prev
-        return prev + Math.random() * 10
-      })
-    }, 1000)
+    if (isLoading) {
+      // Record when loading started
+      setLoadingStartTime(Date.now())
+      setLoadingProgress(0)
+      setShowColdStartNotice(false)
 
-    // Show cold start notice after 3 seconds
-    const coldStartTimer = setTimeout(() => {
-      setShowColdStartNotice(true)
-    }, 3000)
+      // Simulate progress during loading
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev >= 90) return prev
+          return prev + Math.random() * 8 + 2 // More realistic progress increments
+        })
+      }, 800)
 
-    // This would be replaced by your actual video loading logic
-    const loadingTimer = setTimeout(() => {
+      // Show cold start notice after 3 seconds
+      const coldStartTimer = setTimeout(() => {
+        setShowColdStartNotice(true)
+      }, 3000)
+
+      return () => {
+        clearInterval(progressInterval)
+        clearTimeout(coldStartTimer)
+      }
+    } else {
+      // When loading is complete, finish the progress bar
       setLoadingProgress(100)
-      setTimeout(() => {
-        setIsLoading(false)
+      // Hide cold start notice after a brief delay
+      const hideNoticeTimer = setTimeout(() => {
         setShowColdStartNotice(false)
-      }, 500)
-    }, 25000) // 25 seconds simulation
+      }, 1000)
 
-    return () => {
-      clearInterval(progressInterval)
-      clearTimeout(coldStartTimer)
-      clearTimeout(loadingTimer)
+      return () => {
+        clearTimeout(hideNoticeTimer)
+      }
     }
-  }, [])
+  }, [isLoading])
+
+  // Calculate loading duration for display
+  const getLoadingDuration = () => {
+    if (!loadingStartTime) return 0
+    return Math.floor((Date.now() - loadingStartTime) / 1000)
+  }
 
   return (
     <motion.div
@@ -87,7 +99,6 @@ export default function Home() {
                 {/* Progress Bar */}
                 <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
                   <motion.div
-                    initial={{ width: 0 }}
                     animate={{ width: `${loadingProgress}%` }}
                     transition={{ duration: 0.5 }}
                     className="bg-blue-600 h-2 rounded-full"
@@ -96,6 +107,11 @@ export default function Home() {
 
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
                   {Math.round(loadingProgress)}% Complete
+                  {loadingStartTime && (
+                    <span className="block text-xs mt-1">
+                      ({getLoadingDuration()}s elapsed)
+                    </span>
+                  )}
                 </p>
 
                 {/* Cold Start Notice */}
@@ -123,19 +139,36 @@ export default function Home() {
                   )}
                 </AnimatePresence>
 
-                {/* Fun Loading Messages */}
+                {/* Dynamic Loading Messages */}
                 <motion.p
-                  key={Math.floor(loadingProgress / 25)}
+                  key={Math.floor(loadingProgress / 20)}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="text-sm text-gray-500 dark:text-gray-400 mt-4"
                 >
-                  {loadingProgress < 25 && "Waking up our servers..."}
-                  {loadingProgress >= 25 && loadingProgress < 50 && "Fetching your videos..."}
-                  {loadingProgress >= 50 && loadingProgress < 75 && "Organizing content..."}
-                  {loadingProgress >= 75 && loadingProgress < 95 && "Almost ready..."}
+                  {loadingProgress < 20 && "Waking up our servers..."}
+                  {loadingProgress >= 20 && loadingProgress < 40 && "Connecting to database..."}
+                  {loadingProgress >= 40 && loadingProgress < 60 && "Fetching your videos..."}
+                  {loadingProgress >= 60 && loadingProgress < 80 && "Organizing content..."}
+                  {loadingProgress >= 80 && loadingProgress < 95 && "Almost ready..."}
                   {loadingProgress >= 95 && "Finalizing..."}
                 </motion.p>
+
+                {/* Optional: Skip button for impatient users */}
+                {showColdStartNotice && (
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    onClick={() => {
+                      // You could implement a "skip loading" feature here
+                      // For now, just hide the modal
+                      console.log("User wants to skip loading animation")
+                    }}
+                    className="mt-4 text-xs text-gray-400 hover:text-gray-600 underline"
+                  >
+                    Hide loading screen
+                  </motion.button>
+                )}
               </motion.div>
             </motion.div>
           )}
@@ -143,19 +176,45 @@ export default function Home() {
 
         {/* Show skeleton/placeholder content while loading */}
         {isLoading ? (
-          <div className="opacity-30">
-            <div className="mb-6 h-10 bg-gray-200 rounded animate-pulse" />
-            <div className="grid gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-24 bg-gray-200 rounded animate-pulse" />
+          <div className="opacity-30 pointer-events-none">
+            {/* Skeleton for VideoFilter */}
+            <div className="mb-6 space-y-4">
+              <div className="flex space-x-2 overflow-x-auto">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-10 w-24 bg-gray-200 rounded animate-pulse flex-shrink-0" />
+                ))}
+              </div>
+            </div>
+
+            {/* Skeleton for VideoList */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="bg-gray-200 rounded-lg animate-pulse overflow-hidden"
+                >
+                  <div className="aspect-video bg-gray-300" />
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 bg-gray-300 rounded w-full" />
+                    <div className="h-3 bg-gray-300 rounded w-3/4" />
+                    <div className="h-3 bg-gray-300 rounded w-1/2" />
+                  </div>
+                </motion.div>
               ))}
             </div>
           </div>
         ) : (
-          <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
             <VideoFilter />
             <VideoList />
-          </>
+          </motion.div>
         )}
       </div>
     </motion.div>
