@@ -54,7 +54,7 @@ const WatchVideo = () => {
   if (isLoadingVideo) {
     return (
       <div className="min-h-screen bg-base-100 text-base-content">
-        <div className="max-w-[1920px] mx-auto p-4 lg:p-6">
+        <div className="max-w-[1920px] mx-auto p-0 sm:p-4">
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Main content skeleton */}
             <div className="w-full lg:w-3/4 space-y-6">

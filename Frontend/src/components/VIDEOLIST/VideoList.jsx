@@ -20,7 +20,7 @@ export default function VideoList() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {[...Array(8)].map((_, index) => (
           <LoadingSkeleton key={index} />
         ))}
@@ -73,7 +73,7 @@ export default function VideoList() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ staggerChildren: 0.1 }}
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
     >
       {videos.map((video, index) => (
         <VideoCard key={video.id} video={video} index={index} />

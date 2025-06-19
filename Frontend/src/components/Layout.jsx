@@ -80,7 +80,7 @@ const Layout = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
-            className="w-full max-w-8xl p-4 sm:p-6 mt-16" // Adjusted for navbar height
+            className="w-full max-w-8xl p-1 sm:p-6 mt-16" // Adjusted for navbar height
           >
             <Suspense 
               fallback={

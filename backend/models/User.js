@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, "Please provide your email"],
-    unique: true,
+    unique: true, 
     lowercase: true,
     validate: [validator.isEmail, "Please provide a valid email"],
   },
@@ -57,15 +57,14 @@ const userSchema = new mongoose.Schema({
   channel: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Channel",
-    required:false ,
-    
+    required: false,
   },
 });
 
 // Pre-save hook to hash password
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next(); // Only hash if password is modified
-
+  
   const salt = 12;
   this.password = await bcrypt.hash(this.password, salt);
   this.passwordConfirm = undefined; // Remove passwordConfirm field
@@ -83,9 +82,8 @@ userSchema.methods.correctPassword = async function (candidatePassword, userPass
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
-// Indexes for better query performance
-userSchema.index({ email: 1 }); // Index on email field
-// userSchema.index({ role: 1 }); // Index on role field
+
+
 
 const User = mongoose.model("User", userSchema);
 
