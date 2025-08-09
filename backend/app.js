@@ -83,6 +83,11 @@ app.use("/api/v1/users", userRouter);
 app.use("/api/v1/videos", videoRouter);
 app.use("/api/v1/channel", channelRouter);
 
+//for ping
+app.get("/ping", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 app.all("*", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on server`, 404));
 });
