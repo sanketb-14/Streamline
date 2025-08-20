@@ -85,7 +85,7 @@ app.use("/api/v1/channel", channelRouter);
 
 //for ping
 app.get("/ping", (req, res) => {
-  res.status(200).json({ status: "ok" });
+  res.status(200).json({ status: "ping is ok" });
 });
 
 app.all("*", (req, res, next) => {
