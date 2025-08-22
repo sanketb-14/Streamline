@@ -34,6 +34,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
+      "http://localhost:3000"
       "https://streamline02.vercel.app", //  real production URL
     ],
     credentials: true,
