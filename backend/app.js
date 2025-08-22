@@ -30,19 +30,19 @@ app.use(compression());
 app.use("/public", express.static(path.join(__dirname, "public")));
 
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "https://streamline02.vercel.app", //  real production URL
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], //  Specify allowed methods
-    allowedHeaders: ["Content-Type", "Authorization"], //  Specify allowed headers
-    exposedHeaders: ["set-cookie"]
-  })
-);
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://streamline02.vercel.app',
+  ],
+  credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'], // include OPTIONS
+  allowedHeaders: ['Content-Type','Authorization'],
+  // exposedHeaders is optional; JS can’t read Set-Cookie anyway if httpOnly
+}))
+
+app.options('*', cors())
 
 // MIDDLEWARE
 // Adjusted rate limiting to more reasonable values
