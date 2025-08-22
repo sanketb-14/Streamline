@@ -71,14 +71,14 @@ app.use(express.static(join(__dirname, "public")));
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, {
-    origin: req.headers.origin,
-    cookies: req.cookies,
-    headers: req.headers
-  });
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, {
+//     origin: req.headers.origin,
+//     cookies: req.cookies,
+//     headers: req.headers
+//   });
+//   next();
+// });
 // ROUTES 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/videos", videoRouter);
