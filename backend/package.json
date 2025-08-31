@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "main": "server.js",
   "type": "module",
- "scripts": {
-  "dev": "nodemon server.js",       
-  "start": "node server.js",          
-  "vercel-build": "echo 'skipping build'" 
+"scripts": {
+  "dev": "nodemon server.js",
+  "start": "node server.js",
+  "build": "echo 'no build step'"
 },
+
 
   "engines": {
     "node": ">=18.0.0",
