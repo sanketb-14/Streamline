@@ -1,4 +1,4 @@
-# Streamline -- Video Streaming Platform
+# Streamline - Video Streaming Platform
 
 ## project live - https://streamline02.vercel.app
 
