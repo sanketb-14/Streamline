@@ -1,4 +1,4 @@
-# Streamline :- Video Streaming Platform
+# Streamline - Video Streaming Platform
 
 ## project live - https://streamline02.vercel.app/
 
@@ -28,7 +28,7 @@ Streamline is a full-stack video streaming platform inspired by YouTube, allowin
 
 ### Backend
 - Node.js with Express
-- MongoDB for database
+- MongoDB for the database
 - Cloudinary for video and image storage
 - Google OAuth for authentication
 - JWT for session management
