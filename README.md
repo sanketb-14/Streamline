@@ -1,6 +1,6 @@
 # Streamline - Video Streaming Platform
 
-## project live - https://streamline02.vercel.app/
+## project live - https://streamline02.vercel.app
 
 Streamline is a full-stack video streaming platform inspired by YouTube, allowing users to upload, view, like, comment on videos, and subscribe to channels.
 
